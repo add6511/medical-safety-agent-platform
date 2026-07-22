@@ -1,0 +1,899 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "基层医疗安全型预问诊AI服务",
+    "description": "基层医疗安全型预问诊AI服务接口文档。\n\n**安全声明：本服务仅供教学演示，不提供真实诊断或替代医生。**\n\n知识库内容仅供教学参考，不构成诊断或治疗建议。",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "系统"
+        ],
+        "summary": "健康检查",
+        "description": "返回服务运行状态、名称、版本和环境信息，用于服务存活检测。",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge/documents": {
+      "get": {
+        "tags": [
+          "知识库"
+        ],
+        "summary": "查询文档列表",
+        "description": "返回已导入的文档列表，不包含文档正文。",
+        "operationId": "list_documents_api_v1_knowledge_documents_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "知识库"
+        ],
+        "summary": "导入教学文档",
+        "description": "导入教学用指南文本到知识库。内容必须为合成教学材料，不接受真实患者数据。相同校验值的文档重复导入时保持幂等，不重复创建数据。",
+        "operationId": "import_document_api_v1_knowledge_documents_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentImportResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge/search": {
+      "post": {
+        "tags": [
+          "知识库"
+        ],
+        "summary": "知识检索",
+        "description": "根据查询文本检索相关知识片段。检索结果只返回知识片段和来源，不生成诊断结论。",
+        "operationId": "search_knowledge_api_v1_knowledge_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge/documents/{document_id}": {
+      "delete": {
+        "tags": [
+          "知识库"
+        ],
+        "summary": "删除文档",
+        "description": "删除指定文档及其关联的所有知识块。",
+        "operationId": "delete_document_api_v1_knowledge_documents__document_id__delete",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Delete Document Api V1 Knowledge Documents  Document Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/preconsultation/review": {
+      "post": {
+        "tags": [
+          "预问诊审核"
+        ],
+        "summary": "预问诊安全审核",
+        "description": "对合成教学病例进行多Agent安全审核流程。\n\n**安全声明：本接口仅供教学演示，不提供真实诊断或替代医生。**\n\n审核流程：输入校验 → 知识检索 → 风险评估 → 安全审核\n\n注意：HIGH/CRITICAL 风险由规则引擎确定，不允许模型下调。",
+        "operationId": "review_preconsultation_api_v1_preconsultation_review_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreconsultationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreconsultationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DocumentImportRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Title",
+            "description": "文档标题",
+            "examples": [
+              "高血压基层诊疗指南"
+            ]
+          },
+          "publisher": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Publisher",
+            "description": "发布机构",
+            "examples": [
+              "中华医学会"
+            ]
+          },
+          "source_url": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Source Url",
+            "description": "来源链接",
+            "examples": [
+              "https://example.org/guidelines/hypertension"
+            ]
+          },
+          "document_version": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Document Version",
+            "description": "文档版本",
+            "examples": [
+              "2024版"
+            ]
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At",
+            "description": "发布时间"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 500000,
+            "minLength": 1,
+            "title": "Content",
+            "description": "文档正文内容（合成教学材料，不构成诊断或治疗建议）"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "publisher",
+          "source_url",
+          "document_version",
+          "content"
+        ],
+        "title": "DocumentImportRequest",
+        "description": "文档导入请求模型"
+      },
+      "DocumentImportResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "title": "Document Id",
+            "description": "文档唯一标识"
+          },
+          "checksum": {
+            "type": "string",
+            "title": "Checksum",
+            "description": "文档 SHA-256 校验值"
+          },
+          "chunk_count": {
+            "type": "integer",
+            "title": "Chunk Count",
+            "description": "切分后的知识块数量"
+          },
+          "duplicate": {
+            "type": "boolean",
+            "title": "Duplicate",
+            "description": "是否为重复导入"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "checksum",
+          "chunk_count",
+          "duplicate"
+        ],
+        "title": "DocumentImportResponse",
+        "description": "文档导入响应模型"
+      },
+      "DocumentListItem": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "title": "Document Id",
+            "description": "文档唯一标识"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "文档标题"
+          },
+          "publisher": {
+            "type": "string",
+            "title": "Publisher",
+            "description": "发布机构"
+          },
+          "source_url": {
+            "type": "string",
+            "title": "Source Url",
+            "description": "来源链接"
+          },
+          "document_version": {
+            "type": "string",
+            "title": "Document Version",
+            "description": "文档版本"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At",
+            "description": "发布时间"
+          },
+          "checksum": {
+            "type": "string",
+            "title": "Checksum",
+            "description": "文档校验值"
+          },
+          "chunk_count": {
+            "type": "integer",
+            "title": "Chunk Count",
+            "description": "知识块数量"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "导入时间"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "title",
+          "publisher",
+          "source_url",
+          "document_version",
+          "published_at",
+          "checksum",
+          "chunk_count",
+          "created_at"
+        ],
+        "title": "DocumentListItem",
+        "description": "文档列表项（不包含正文）"
+      },
+      "DocumentListResponse": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "文档总数"
+          },
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentListItem"
+            },
+            "type": "array",
+            "title": "Documents",
+            "description": "文档列表"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "documents"
+        ],
+        "title": "DocumentListResponse",
+        "description": "文档列表响应模型"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "服务状态",
+            "default": "ok",
+            "examples": [
+              "ok"
+            ]
+          },
+          "service": {
+            "type": "string",
+            "title": "Service",
+            "description": "服务名称",
+            "default": "medical-safety-ai-service",
+            "examples": [
+              "medical-safety-ai-service"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "服务版本",
+            "default": "0.1.0",
+            "examples": [
+              "0.1.0"
+            ]
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment",
+            "description": "运行环境",
+            "default": "development",
+            "examples": [
+              "development"
+            ]
+          }
+        },
+        "type": "object",
+        "title": "HealthResponse",
+        "description": "健康检查响应模型",
+        "examples": [
+          {
+            "environment": "development",
+            "service": "medical-safety-ai-service",
+            "status": "ok",
+            "version": "0.1.0"
+          }
+        ]
+      },
+      "PreconsultationRequest": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Case Id",
+            "description": "病例标识（合成教学用）",
+            "examples": [
+              "synthetic-case-001"
+            ]
+          },
+          "age": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 150.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age",
+            "description": "年龄",
+            "examples": [
+              45
+            ]
+          },
+          "symptoms": {
+            "items": {
+              "$ref": "#/components/schemas/SymptomInput"
+            },
+            "type": "array",
+            "title": "Symptoms",
+            "description": "症状列表"
+          },
+          "red_flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Red Flags",
+            "description": "红旗标识列表",
+            "examples": [
+              [
+                "persistent_chest_discomfort"
+              ]
+            ]
+          },
+          "free_text": {
+            "type": "string",
+            "maxLength": 5000,
+            "title": "Free Text",
+            "description": "自由文本描述（合成教学病例）",
+            "default": ""
+          },
+          "model_suggested_risk": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Suggested Risk",
+            "description": "模型建议的风险等级（LOW/MEDIUM/HIGH/CRITICAL）"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id"
+        ],
+        "title": "PreconsultationRequest",
+        "description": "预问诊审核请求"
+      },
+      "PreconsultationResponse": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "title": "Case Id",
+            "description": "病例标识"
+          },
+          "final_risk_level": {
+            "type": "string",
+            "title": "Final Risk Level",
+            "description": "最终风险等级"
+          },
+          "rule_risk_level": {
+            "type": "string",
+            "title": "Rule Risk Level",
+            "description": "规则引擎风险等级"
+          },
+          "model_suggested_risk": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Suggested Risk",
+            "description": "模型建议风险等级"
+          },
+          "model_downgrade_blocked": {
+            "type": "boolean",
+            "title": "Model Downgrade Blocked",
+            "description": "模型降级是否被阻止"
+          },
+          "needs_human_review": {
+            "type": "boolean",
+            "title": "Needs Human Review",
+            "description": "是否需要人工审核"
+          },
+          "matched_rules": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Matched Rules",
+            "description": "命中的规则列表"
+          },
+          "retrieved_evidence": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Retrieved Evidence",
+            "description": "检索到的知识引用"
+          },
+          "safety_flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Safety Flags",
+            "description": "安全审核标记"
+          },
+          "safe_summary": {
+            "type": "string",
+            "title": "Safe Summary",
+            "description": "安全审核后的摘要文本"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer",
+            "description": "免责声明"
+          },
+          "agent_trace": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Agent Trace",
+            "description": "Agent 审计记录（不含思维链）"
+          },
+          "ruleset_version": {
+            "type": "string",
+            "title": "Ruleset Version",
+            "description": "规则集版本"
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version",
+            "description": "模型版本"
+          },
+          "prompt_version": {
+            "type": "string",
+            "title": "Prompt Version",
+            "description": "Prompt 版本"
+          },
+          "knowledge_base_version": {
+            "type": "string",
+            "title": "Knowledge Base Version",
+            "description": "知识库版本"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id",
+          "final_risk_level",
+          "rule_risk_level",
+          "model_suggested_risk",
+          "model_downgrade_blocked",
+          "needs_human_review",
+          "matched_rules",
+          "retrieved_evidence",
+          "safety_flags",
+          "safe_summary",
+          "disclaimer",
+          "agent_trace",
+          "ruleset_version",
+          "model_version",
+          "prompt_version",
+          "knowledge_base_version"
+        ],
+        "title": "PreconsultationResponse",
+        "description": "预问诊审核响应"
+      },
+      "SearchItem": {
+        "properties": {
+          "chunk_id": {
+            "type": "string",
+            "title": "Chunk Id",
+            "description": "知识块唯一标识"
+          },
+          "document_id": {
+            "type": "string",
+            "title": "Document Id",
+            "description": "所属文档标识"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "文档标题"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "知识块内容"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score",
+            "description": "相似度得分（0-1）"
+          },
+          "publisher": {
+            "type": "string",
+            "title": "Publisher",
+            "description": "发布机构"
+          },
+          "source_url": {
+            "type": "string",
+            "title": "Source Url",
+            "description": "来源链接"
+          },
+          "document_version": {
+            "type": "string",
+            "title": "Document Version",
+            "description": "文档版本"
+          },
+          "chunk_index": {
+            "type": "integer",
+            "title": "Chunk Index",
+            "description": "块在文档中的序号"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chunk_id",
+          "document_id",
+          "title",
+          "content",
+          "score",
+          "publisher",
+          "source_url",
+          "document_version",
+          "chunk_index"
+        ],
+        "title": "SearchItem",
+        "description": "单条检索结果"
+      },
+      "SearchRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Query",
+            "description": "检索查询文本",
+            "examples": [
+              "高血压的诊断标准是什么"
+            ]
+          },
+          "top_k": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Top K",
+            "description": "返回结果数量，范围 1-10",
+            "default": 5
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "SearchRequest",
+        "description": "知识检索请求模型"
+      },
+      "SearchResponse": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query",
+            "description": "原始查询"
+          },
+          "top_k": {
+            "type": "integer",
+            "title": "Top K",
+            "description": "请求返回数量"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/SearchItem"
+            },
+            "type": "array",
+            "title": "Results",
+            "description": "检索结果列表"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer",
+            "description": "安全声明",
+            "default": "检索结果仅供教学参考，不构成诊断或治疗建议。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query",
+          "top_k",
+          "results"
+        ],
+        "title": "SearchResponse",
+        "description": "知识检索响应模型"
+      },
+      "SymptomInput": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "description": "症状名称",
+            "examples": [
+              "胸部不适"
+            ]
+          },
+          "severity": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Severity",
+            "description": "严重程度（0-10）",
+            "default": 5,
+            "examples": [
+              7
+            ]
+          },
+          "duration": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Duration",
+            "description": "持续时间",
+            "default": "",
+            "examples": [
+              "30分钟"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "SymptomInput",
+        "description": "症状输入"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
