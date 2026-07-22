@@ -30,6 +30,7 @@ class AgentAuditRecord(BaseModel):
 class AgentContext(BaseModel):
     """Agent 间传递的上下文"""
     case_id: str = Field(description="病例标识")
+    trace_id: str = Field(default="", description="请求追踪ID（UUID4）")
     age: Optional[int] = Field(default=None, description="年龄")
     symptoms: List[Dict[str, Any]] = Field(default_factory=list, description="症状列表")
     red_flags: List[str] = Field(default_factory=list, description="红旗标识列表")
@@ -39,6 +40,8 @@ class AgentContext(BaseModel):
     # Agent 输出字段（逐步填充）
     normalized_symptoms: List[Dict[str, Any]] = Field(default_factory=list)
     missing_fields: List[str] = Field(default_factory=list)
+    followup_questions: List[str] = Field(default_factory=list, description="根据缺失字段生成的追问问题")
+    symptom_summary: str = Field(default="", description="症状摘要文本")
     retrieved_evidence: List[Dict[str, Any]] = Field(default_factory=list)
     rule_risk_level: Optional[str] = Field(default=None)
     final_risk_level: Optional[str] = Field(default=None)

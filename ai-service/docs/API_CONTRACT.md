@@ -557,6 +557,135 @@ Host: localhost:8000
 
 ---
 
+### 3.7 分诊分析
+
+#### `POST /api/v1/triage/analyze`
+
+对合成教学病例进行分诊分析，复用多Agent安全审核流程。返回统一输出结构。
+
+**安全声明**：本接口仅供教学演示，不提供真实诊断或替代医生。
+
+**请求示例**
+
+```json
+{
+  "case_id": "synthetic-triage-001",
+  "age": 30,
+  "symptoms": [
+    {"name": "头痛", "severity": 5, "duration": "2小时"}
+  ],
+  "red_flags": [],
+  "free_text": "合成教学病例。",
+  "model_suggested_risk": "LOW"
+}
+```
+
+请求字段与 `POST /api/v1/preconsultation/review` 一致。
+
+**响应示例**
+
+```json
+{
+  "case_id": "synthetic-triage-001",
+  "trace_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "risk_level": "LOW",
+  "symptom_summary": "头痛（持续2小时，严重程度5/10）",
+  "red_flags": [],
+  "evidence": [],
+  "citations": [],
+  "missing_information": [],
+  "followup_questions": [],
+  "safety_status": "pass",
+  "disclaimer": "以上内容仅供教学演示，不构成诊断或治疗建议。如需就医请咨询专业医疗机构。"
+}
+```
+
+**统一输出字段说明**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| trace_id | string | 请求追踪ID（UUID4），每次请求唯一 |
+| risk_level | string | 最终风险等级 |
+| symptom_summary | string | 标准化症状摘要 |
+| red_flags | array | 红旗标识列表 |
+| evidence | array | 证据列表 |
+| citations | array | 引用来源列表 |
+| missing_information | array | 缺失信息字段 |
+| followup_questions | array | 根据缺失字段生成的追问问题 |
+| safety_status | string | 安全状态：pass / blocked / human_review |
+| disclaimer | string | 免责声明 |
+
+**状态码**
+
+| 状态码 | 说明 |
+|--------|------|
+| 200 | 分析完成 |
+| 422 | 请求参数校验失败 |
+| 503 | 分诊服务未初始化 |
+
+---
+
+### 3.8 安全检查
+
+#### `POST /api/v1/safety/check`
+
+对待审核文本进行安全检查，不执行完整多Agent流程。
+
+**安全声明**：本接口仅供教学演示，不提供真实诊断或替代医生。
+
+**请求示例**
+
+```json
+{
+  "text": "待审核的文本内容",
+  "risk_level": "HIGH",
+  "needs_human_review": false
+}
+```
+
+**请求字段说明**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| text | string | 是 | 待审核文本（1-10000字符） |
+| risk_level | string | 否 | 当前风险等级（LOW/MEDIUM/HIGH/CRITICAL） |
+| needs_human_review | bool | 否 | 当前是否标记需要人工审核 |
+
+**响应示例**
+
+```json
+{
+  "trace_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+  "safety_status": "blocked",
+  "safety_flags": ["contains_definitive_diagnosis"],
+  "sanitized_text": "[已拦截: 不允许确定性诊断表述]",
+  "needs_human_review": false,
+  "disclaimer": "以上内容仅供教学演示，不构成诊断或治疗建议。"
+}
+```
+
+**响应字段说明**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| trace_id | string | 请求追踪ID（UUID4） |
+| safety_status | string | 安全状态：pass / blocked / human_review |
+| safety_flags | array | 安全标记列表 |
+| sanitized_text | string | 清理后的文本（不安全内容已替换） |
+| needs_human_review | bool | 是否需要人工审核 |
+| disclaimer | string | 免责声明 |
+
+**检查项**
+
+| 检查项 | safety_flag 值 | 说明 |
+|--------|----------------|------|
+| 确定性疾病诊断 | contains_definitive_diagnosis | 如"你就是XX病" |
+| 药物处方/剂量 | contains_prescription_or_dosage | 如"服用XX 500mg" |
+| 取消人工审核 | cancel_human_review_detected | 如"不需要人工审核" |
+| 高风险缺人工审核 | high_risk_missing_human_review | HIGH/CRITICAL但未标记审核 |
+
+---
+
 ## 4. 安全字段说明
 
 ### 4.1 风险等级字段

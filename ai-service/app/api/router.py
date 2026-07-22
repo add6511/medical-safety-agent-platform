@@ -7,6 +7,8 @@ from fastapi import APIRouter
 from app.api.routes.health import router as health_router
 from app.api.routes.knowledge import router as knowledge_router
 from app.api.routes.preconsultation import router as preconsultation_router
+from app.api.routes.triage import router as triage_router
+from app.api.routes.safety import router as safety_router
 
 # 主路由：挂载所有子路由
 api_router = APIRouter()
@@ -23,8 +25,10 @@ v1_router.include_router(knowledge_router)
 # 预问诊审核路由
 v1_router.include_router(preconsultation_router)
 
-# 后续在此处挂载其他业务路由，例如：
-# v1_router.include_router(chat_router, prefix="/chat", tags=["问诊"])
-# v1_router.include_router(safety_router, prefix="/safety", tags=["安全检查"])
+# 分诊分析路由
+v1_router.include_router(triage_router)
+
+# 安全检查路由
+v1_router.include_router(safety_router)
 
 api_router.include_router(v1_router)

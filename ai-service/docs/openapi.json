@@ -218,6 +218,94 @@
           }
         }
       }
+    },
+    "/api/v1/triage/analyze": {
+      "post": {
+        "tags": [
+          "分诊分析"
+        ],
+        "summary": "分诊分析",
+        "description": "对合成教学病例进行分诊分析，复用多Agent安全审核流程。\n\n**安全声明：本接口仅供教学演示，不提供真实诊断或替代医生。**",
+        "operationId": "analyze_triage_api_v1_triage_analyze_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/safety/check": {
+      "post": {
+        "tags": [
+          "安全检查"
+        ],
+        "summary": "安全检查",
+        "description": "对待审核文本进行安全检查。\n\n**安全声明：本接口仅供教学演示，不提供真实诊断或替代医生。**\n\n检查内容：确定性诊断、药物处方、取消人工审核、风险降级。\n\n原始不安全文本不得通过 API 返回。",
+        "operationId": "check_safety_api_v1_safety_check_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Request"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Check Safety Api V1 Safety Check Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -573,10 +661,20 @@
             "title": "Case Id",
             "description": "病例标识"
           },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id",
+            "description": "请求追踪ID（UUID4）"
+          },
           "final_risk_level": {
             "type": "string",
             "title": "Final Risk Level",
             "description": "最终风险等级"
+          },
+          "risk_level": {
+            "type": "string",
+            "title": "Risk Level",
+            "description": "风险等级（与 final_risk_level 一致）"
           },
           "rule_risk_level": {
             "type": "string",
@@ -623,6 +721,24 @@
             "title": "Retrieved Evidence",
             "description": "检索到的知识引用"
           },
+          "evidence": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Evidence",
+            "description": "证据列表（与 retrieved_evidence 一致）"
+          },
+          "citations": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Citations",
+            "description": "引用来源列表"
+          },
           "safety_flags": {
             "items": {
               "type": "string"
@@ -631,10 +747,44 @@
             "title": "Safety Flags",
             "description": "安全审核标记"
           },
+          "safety_status": {
+            "type": "string",
+            "title": "Safety Status",
+            "description": "安全状态：pass / blocked / human_review"
+          },
           "safe_summary": {
             "type": "string",
             "title": "Safe Summary",
             "description": "安全审核后的摘要文本"
+          },
+          "symptom_summary": {
+            "type": "string",
+            "title": "Symptom Summary",
+            "description": "症状摘要"
+          },
+          "red_flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Red Flags",
+            "description": "红旗标识列表"
+          },
+          "missing_information": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Information",
+            "description": "缺失信息字段"
+          },
+          "followup_questions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Followup Questions",
+            "description": "追问问题列表"
           },
           "disclaimer": {
             "type": "string",
@@ -674,15 +824,24 @@
         "type": "object",
         "required": [
           "case_id",
+          "trace_id",
           "final_risk_level",
+          "risk_level",
           "rule_risk_level",
           "model_suggested_risk",
           "model_downgrade_blocked",
           "needs_human_review",
           "matched_rules",
           "retrieved_evidence",
+          "evidence",
+          "citations",
           "safety_flags",
+          "safety_status",
           "safe_summary",
+          "symptom_summary",
+          "red_flags",
+          "missing_information",
+          "followup_questions",
           "disclaimer",
           "agent_trace",
           "ruleset_version",
@@ -860,6 +1019,167 @@
         ],
         "title": "SymptomInput",
         "description": "症状输入"
+      },
+      "TriageRequest": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Case Id",
+            "description": "病例标识（合成教学用）",
+            "examples": [
+              "synthetic-triage-001"
+            ]
+          },
+          "age": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 150.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age",
+            "description": "年龄"
+          },
+          "symptoms": {
+            "items": {
+              "$ref": "#/components/schemas/SymptomInput"
+            },
+            "type": "array",
+            "title": "Symptoms",
+            "description": "症状列表"
+          },
+          "red_flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Red Flags",
+            "description": "红旗标识列表"
+          },
+          "free_text": {
+            "type": "string",
+            "maxLength": 5000,
+            "title": "Free Text",
+            "description": "自由文本描述（合成教学病例）",
+            "default": ""
+          },
+          "model_suggested_risk": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Suggested Risk",
+            "description": "模型建议的风险等级"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id"
+        ],
+        "title": "TriageRequest",
+        "description": "分诊分析请求"
+      },
+      "TriageResponse": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "title": "Case Id",
+            "description": "病例标识"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id",
+            "description": "请求追踪ID（UUID4）"
+          },
+          "risk_level": {
+            "type": "string",
+            "title": "Risk Level",
+            "description": "风险等级"
+          },
+          "symptom_summary": {
+            "type": "string",
+            "title": "Symptom Summary",
+            "description": "症状摘要"
+          },
+          "red_flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Red Flags",
+            "description": "红旗标识列表"
+          },
+          "evidence": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Evidence",
+            "description": "证据列表"
+          },
+          "citations": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Citations",
+            "description": "引用来源列表"
+          },
+          "missing_information": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Information",
+            "description": "缺失信息字段"
+          },
+          "followup_questions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Followup Questions",
+            "description": "追问问题列表"
+          },
+          "safety_status": {
+            "type": "string",
+            "title": "Safety Status",
+            "description": "安全状态：pass / blocked / human_review"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer",
+            "description": "免责声明"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id",
+          "trace_id",
+          "risk_level",
+          "symptom_summary",
+          "red_flags",
+          "evidence",
+          "citations",
+          "missing_information",
+          "followup_questions",
+          "safety_status",
+          "disclaimer"
+        ],
+        "title": "TriageResponse",
+        "description": "分诊分析响应"
       },
       "ValidationError": {
         "properties": {

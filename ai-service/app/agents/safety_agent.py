@@ -18,30 +18,36 @@ from app.agents.base import AgentContext, BaseAgent
 
 logger = logging.getLogger(__name__)
 
-# 确定性诊断表述模式
+# 确定性诊断表述模式（支持中文无空格）
 _DIAGNOSIS_PATTERNS = [
-    re.compile(r"你(就是|得了|患有|确诊为)\s*\S+病", re.IGNORECASE),
+    re.compile(r"你(就是|得了|患有|确诊为)\s*\S+", re.IGNORECASE),
     re.compile(r"(诊断|确诊)(为|是)\s*\S+", re.IGNORECASE),
     re.compile(r"你(一定|肯定|必然)(是|得了)\s*\S+", re.IGNORECASE),
 ]
 
-# 药物处方和剂量模式
+# 药物处方和剂量模式（支持中文无空格、中文标点）
 _PRESCRIPTION_PATTERNS = [
-    re.compile(r"(开|服用|吃|口服|注射)\s*\S+\s*\d+\s*(mg|ml|g|片|粒|支)", re.IGNORECASE),
-    re.compile(r"(处方|医嘱).*\S+\s*\d+\s*(mg|ml|g)", re.IGNORECASE),
-    re.compile(r"(每天|每日|一日)\s*\d+\s*次.*\d+\s*(mg|ml|g|片)", re.IGNORECASE),
+    re.compile(r"(开|服用|吃|口服|注射)\s*\S+?\s*\d+\s*(mg|ml|g|片|粒|支)", re.IGNORECASE),
+    re.compile(r"(处方|医嘱)\s*.*?\S+?\s*\d+\s*(mg|ml|g)", re.IGNORECASE),
+    re.compile(r"(每天|每日|一日)\s*\d+\s*次", re.IGNORECASE),
     re.compile(r"\d+\s*(mg|ml|g)\s*(的|每次|每日)", re.IGNORECASE),
 ]
 
-# 取消人工审核的危险表述
+# 取消人工审核的危险表述（支持中文无空格）
 _CANCEL_REVIEW_PATTERNS = [
-    re.compile(r"(不需要|无需|不必|不用)\s*(人工|人工审核|人工复核|人工检查)", re.IGNORECASE),
+    re.compile(r"(不需要|无需|不必|不用)\s*(人工审核|人工复核|人工检查|人工)", re.IGNORECASE),
     re.compile(r"(已经|已)\s*(排除|确认安全|确认无风险)", re.IGNORECASE),
     re.compile(r"(可以|能够)\s*(自行|自动)\s*(处理|解决)", re.IGNORECASE),
 ]
 
 # 免责声明关键词
 _DISCLAIMER_KEYWORDS = ["仅供教学", "不构成诊断", "不构成治疗建议", "不代表医疗建议"]
+
+# 安全拦截说明文本
+_BLOCKED_DISCLAIMER = (
+    "【安全拦截】检测到不安全内容（确定性诊断、药物处方/剂量或试图取消人工审核），"
+    "原始内容已被拦截。以上内容仅供教学演示，不构成诊断或治疗建议。"
+)
 
 
 class SafetyReviewAgent(BaseAgent):
@@ -78,12 +84,11 @@ class SafetyReviewAgent(BaseAgent):
         else:
             candidate_text_to_check = candidate_text
 
-        # 检查确定性诊断表述
+        # 检查确定性诊断表述（不 break，累计所有类型）
         for pattern in _DIAGNOSIS_PATTERNS:
             if pattern.search(candidate_text_to_check):
                 flags.append("contains_definitive_diagnosis")
                 intercepted_types.append("确定性诊断")
-                # 替换不安全文本
                 candidate_text = pattern.sub("[已拦截: 不允许确定性诊断表述]", candidate_text)
                 break
 
@@ -117,14 +122,26 @@ class SafetyReviewAgent(BaseAgent):
                         flags.append("missing_citation_field")
                         break
 
+        # 确定安全状态：只要存在不安全内容就 blocked
+        _unsafe_flags = {
+            "contains_definitive_diagnosis",
+            "contains_prescription_or_dosage",
+            "cancel_human_review_detected",
+        }
+        if _unsafe_flags & set(flags):
+            # 有不安全内容，替换为安全说明
+            candidate_text = _BLOCKED_DISCLAIMER
+        elif context.needs_human_review:
+            pass  # 保留原有摘要
+        else:
+            pass
+
         # 检查免责声明
         has_disclaimer = any(kw in candidate_text for kw in _DISCLAIMER_KEYWORDS)
         if not has_disclaimer:
-            # 添加免责声明
             candidate_text += "\n\n【声明】以上内容仅供教学演示，不构成诊断或治疗建议。"
 
         context.safety_flags = flags
-        # safe_summary 只包含审核通过的内容，不包含原始不安全候选文本
         context.safe_summary = candidate_text
 
         # 构建审计摘要

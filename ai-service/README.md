@@ -262,6 +262,27 @@ curl -X POST http://localhost:8000/api/v1/preconsultation/review \
   }'
 ```
 
+### 分诊分析
+
+```bash
+curl -X POST http://localhost:8000/api/v1/triage/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "case_id": "synthetic-triage-001",
+    "age": 30,
+    "symptoms": [{"name": "头痛", "severity": 5, "duration": "2小时"}],
+    "free_text": "合成教学病例。",
+  }'
+```
+
+### 安全检查
+
+```bash
+curl -X POST http://localhost:8000/api/v1/safety/check \
+  -H "Content-Type: application/json" \
+  -d '{"text": "待审核文本内容"}'
+```
+
 ## 安全限制
 
 - 本服务仅供教学演示，不提供真实诊断或替代医生

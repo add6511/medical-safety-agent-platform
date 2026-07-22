@@ -6,6 +6,7 @@
 """
 
 import logging
+import uuid
 from typing import Any, Dict, List
 
 from app.agents.base import AgentContext
@@ -44,9 +45,12 @@ class PreconsultationService:
         Returns:
             审核结果字典
         """
+        trace_id = str(uuid.uuid4())
+
         # 构建 Agent 上下文
         context = AgentContext(
             case_id=request_data.get("case_id", "unknown"),
+            trace_id=trace_id,
             age=request_data.get("age"),
             symptoms=[s if isinstance(s, dict) else s.model_dump() for s in request_data.get("symptoms", [])],
             red_flags=request_data.get("red_flags", []),
@@ -60,17 +64,39 @@ class PreconsultationService:
         # 构建响应
         disclaimer = "以上内容仅供教学演示，不构成诊断或治疗建议。如需就医请咨询专业医疗机构。"
 
+        # 将 trace_id 写入审计记录的 input_summary
+        for record in audit_trail:
+            record.input_summary = f"trace_id={trace_id}, {record.input_summary}"
+
         response = {
             "case_id": result_context.case_id,
+            "trace_id": trace_id,
             "final_risk_level": result_context.final_risk_level or "LOW",
+            "risk_level": result_context.final_risk_level or "LOW",
             "rule_risk_level": result_context.rule_risk_level or "LOW",
             "model_suggested_risk": result_context.model_suggested_risk,
             "model_downgrade_blocked": result_context.model_downgrade_blocked,
             "needs_human_review": result_context.needs_human_review,
             "matched_rules": result_context.matched_rules,
             "retrieved_evidence": result_context.retrieved_evidence,
+            "evidence": result_context.retrieved_evidence,
+            "citations": [
+                {
+                    "title": ev.get("title", ""),
+                    "publisher": ev.get("publisher", ""),
+                    "source_url": ev.get("source_url", ""),
+                    "document_version": ev.get("document_version", ""),
+                    "chunk_index": ev.get("chunk_index", 0),
+                }
+                for ev in result_context.retrieved_evidence
+            ],
             "safety_flags": result_context.safety_flags,
+            "safety_status": _determine_safety_status(result_context),
             "safe_summary": result_context.safe_summary,
+            "symptom_summary": result_context.symptom_summary,
+            "red_flags": result_context.red_flags,
+            "missing_information": result_context.missing_fields,
+            "followup_questions": result_context.followup_questions,
             "disclaimer": disclaimer,
             "agent_trace": [record.model_dump() for record in audit_trail],
             "ruleset_version": result_context.ruleset_version or self._rule_engine.ruleset_version,
@@ -80,3 +106,16 @@ class PreconsultationService:
         }
 
         return response
+
+
+def _determine_safety_status(context: AgentContext) -> str:
+    """根据安全标记确定安全状态"""
+    if "contains_definitive_diagnosis" in context.safety_flags:
+        return "blocked"
+    if "contains_prescription_or_dosage" in context.safety_flags:
+        return "blocked"
+    if "cancel_human_review_detected" in context.safety_flags:
+        return "blocked"
+    if context.needs_human_review:
+        return "human_review"
+    return "pass"
