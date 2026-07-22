@@ -13,7 +13,7 @@ const router = createRouter({
         { path: 'pre-check', name: 'PreCheck', component: () => import('@/views/PatientPreCheck.vue'), meta: { requiresAuth: true } },
         { path: 'review-list', name: 'ReviewList', component: () => import('@/views/ReviewList.vue'), meta: { requiresAuth: true } },
         { path: 'review/:id', name: 'Review', component: () => import('@/views/ReviewConsole.vue'), meta: { requiresAuth: true } },
-        { path: 'follow-up', name: 'FollowUp', component: () => import('@/views/FollowUpPlan.vue'), meta: { requiresAuth: true } },
+
         { path: 'agent-runs', name: 'AgentRuns', component: () => import('@/views/AgentRuns.vue'), meta: { requiresAuth: true } },
         { path: 'safety-audit', name: 'SafetyAudit', component: () => import('@/views/SafetyAudit.vue'), meta: { requiresAuth: true } },
       ],

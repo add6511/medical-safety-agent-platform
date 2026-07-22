@@ -17,10 +17,6 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
-      '/ai': {
-        target: 'http://localhost:5006',
-        changeOrigin: true,
-      },
     },
   },
 })

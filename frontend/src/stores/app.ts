@@ -11,7 +11,6 @@ export interface PatientCase {
   status: 'pending' | 'reviewing' | 'approved' | 'completed'
   createdAt: string
   triageResult?: TriageResult
-  followUpPlan?: FollowUpPlan
   safetyAlerts?: SafetyAlert[]
 }
 
@@ -21,21 +20,6 @@ export interface TriageResult {
   department: string
   recommendations: string[]
   aiConfidence: number
-}
-
-export interface FollowUpPlan {
-  id: string
-  tasks: FollowUpTask[]
-  schedule: string
-  compliance: number
-}
-
-export interface FollowUpTask {
-  id: string
-  title: string
-  dueDate: string
-  completed: boolean
-  type: 'medication' | 'checkup' | 'lifestyle' | 'consultation'
 }
 
 export interface SafetyAlert {

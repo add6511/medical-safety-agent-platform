@@ -26,10 +26,6 @@
           <el-icon><Checked /></el-icon>
           <span>审核列表</span>
         </el-menu-item>
-        <el-menu-item index="/follow-up">
-          <el-icon><Calendar /></el-icon>
-          <span>随访计划</span>
-        </el-menu-item>
         <el-menu-item index="/agent-runs">
           <el-icon><Cpu /></el-icon>
           <span>Agent 日志</span>
@@ -81,7 +77,7 @@ import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { ElMessage } from 'element-plus'
-import { DataBoard, Edit, Checked, Calendar, Cpu, Warning, Bell, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
+import { DataBoard, Edit, Checked, Cpu, Warning, Bell, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()

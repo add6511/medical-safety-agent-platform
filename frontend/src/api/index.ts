@@ -40,14 +40,6 @@ export const triageApi = {
   review: (id: string, data: any) => api.put(`/triage/${id}/review`, data),
 }
 
-// === Follow-up APIs ===
-export const followUpApi = {
-  list: (patientId: string) => api.get(`/follow-ups`, { params: { patientId } }),
-  create: (data: any) => api.post('/follow-ups', data),
-  updateTask: (id: string, taskId: string, data: any) => api.put(`/follow-ups/${id}/tasks/${taskId}`, data),
-  getCompliance: (patientId: string) => api.get(`/follow-ups/compliance/${patientId}`),
-}
-
 // === AI / Safety APIs ===
 export const aiApi = {
   getSafetyAlerts: () => api.get('/ai/safety-alerts'),
