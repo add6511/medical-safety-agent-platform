@@ -17,21 +17,32 @@
 
 ## 安装与配置
 
-1. 复制环境变量文件并填写实际值：
-   ```bash
-   cp .env.example .env
-   ```
-
-2. 创建 MySQL 数据库：
+1. 创建 MySQL 数据库：
    ```sql
    CREATE DATABASE medical_safety CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    ```
 
-3. 设置环境变量（或直接修改 `.env` 文件）：
-   - `MYSQL_URL` - 数据库连接地址
-   - `MYSQL_USERNAME` - 数据库用户名
-   - `MYSQL_PASSWORD` - 数据库密码
-   - `JWT_SECRET` - JWT 签名密钥（至少 256 位）
+2. 通过环境变量配置连接信息。Spring Boot 不会自动读取 `.env` 文件，需手动设置：
+
+   **PowerShell (Windows)：**
+   ```powershell
+   $env:MYSQL_URL="jdbc:mysql://localhost:3306/medical_safety?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8"
+   $env:MYSQL_USERNAME="your_mysql_username"
+   $env:MYSQL_PASSWORD="your_mysql_password"
+   $env:JWT_SECRET="your_jwt_secret_at_least_32_bytes_long"
+   mvn spring-boot:run
+   ```
+
+   **Bash (Linux/macOS)：**
+   ```bash
+   export MYSQL_URL="jdbc:mysql://localhost:3306/medical_safety?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8"
+   export MYSQL_USERNAME="your_mysql_username"
+   export MYSQL_PASSWORD="your_mysql_password"
+   export JWT_SECRET="your_jwt_secret_at_least_32_bytes_long"
+   mvn spring-boot:run
+   ```
+
+   > **重要：** `JWT_SECRET` 必须至少 32 字节（256 位），否则应用启动时会报错。不得提交真实密钥。
 
 ## 启动
 
@@ -39,13 +50,31 @@
 # 编译
 mvn compile
 
-# 运行
+# 生产模式运行（需先设置环境变量）
 mvn spring-boot:run
+
+# Demo 模式运行（自动创建合成演示账号）
+mvn spring-boot:run -Dspring-boot.run.profiles=demo
 
 # 或打包后运行
 mvn package -DskipTests
 java -jar target/platform-0.1.0-SNAPSHOT.jar
 ```
+
+## Demo 演示账号
+
+> **仅供教学演示，不得用于生产环境。** 所有账号均为合成数据，不包含真实个人信息。
+
+使用 `demo` profile 启动时自动创建以下账号（密码均为 `demo123`）：
+
+| 用户名 | 角色 | 说明 |
+|--------|------|------|
+| demo_patient | PATIENT | 合成患者A |
+| demo_medical | MEDICAL_STAFF | 合成医生B |
+| demo_followup | FOLLOWUP_STAFF | 合成随访员C |
+| demo_admin | ADMIN | 合成管理员D |
+
+默认生产环境不会创建任何演示账号。
 
 ## 测试
 

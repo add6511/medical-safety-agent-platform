@@ -46,4 +46,12 @@ class BCryptPasswordEncoderTest {
         String encoded2 = passwordEncoder.encode(rawPassword);
         assertNotEquals(encoded1, encoded2);
     }
+
+    @Test
+    void doesNotSavePlaintext() {
+        String rawPassword = "password123";
+        String encoded = passwordEncoder.encode(rawPassword);
+        assertFalse(encoded.contains(rawPassword));
+        assertNotEquals(rawPassword, encoded);
+    }
 }

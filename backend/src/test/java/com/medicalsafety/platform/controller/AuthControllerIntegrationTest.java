@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -164,6 +165,41 @@ class AuthControllerIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void loginFailureReturnsSameErrorAsWrongPassword() throws Exception {
+        createTestUser("existing_user", "password", UserStatus.ENABLED, adminRole);
+
+        LoginRequest wrongPasswordRequest = LoginRequest.builder().username("existing_user").password("wrongpassword").build();
+        String wrongPasswordBody = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(wrongPasswordRequest)))
+                .andExpect(status().isUnauthorized())
+                .andReturn().getResponse().getContentAsString();
+
+        LoginRequest nonexistentRequest = LoginRequest.builder().username("nonexistent_user").password("password").build();
+        String nonexistentBody = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(nonexistentRequest)))
+                .andExpect(status().isUnauthorized())
+                .andReturn().getResponse().getContentAsString();
+
+        String wrongMsg = objectMapper.readTree(wrongPasswordBody).get("errorCode").asText();
+        String nonexistMsg = objectMapper.readTree(nonexistentBody).get("errorCode").asText();
+        assertEquals(wrongMsg, nonexistMsg);
+    }
+
+    @Test
+    void actuatorHealthIsAccessible() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void swaggerApiDocsIsAccessible() throws Exception {
+        mockMvc.perform(get("/api-docs"))
+                .andExpect(status().isOk());
     }
 
     @Test

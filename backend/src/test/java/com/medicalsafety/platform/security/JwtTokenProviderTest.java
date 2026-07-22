@@ -11,11 +11,11 @@ class JwtTokenProviderTest {
 
     private JwtTokenProvider jwtTokenProvider;
 
+    private static final String VALID_SECRET = "dGVzdC1qd3Qtc2VjcmV0LWtleS1mb3ItdGVzdGluZy1wdXJwb3Nlcy1vbmx5LWF0LWxlYXN0LTI1Ni1iaXRz";
+
     @BeforeEach
     void setUp() {
-        String secret = "dGVzdC1qd3Qtc2VjcmV0LWtleS1mb3ItdGVzdGluZy1wdXJwb3Nlcy1vbmx5LWF0LWxlYXN0LTI1Ni1iaXRz";
-        long expiration = 86400000L;
-        jwtTokenProvider = new JwtTokenProvider(secret, expiration);
+        jwtTokenProvider = new JwtTokenProvider(VALID_SECRET, 86400000L);
     }
 
     @Test
@@ -28,15 +28,13 @@ class JwtTokenProviderTest {
     @Test
     void getUsernameFromToken() {
         String token = jwtTokenProvider.generateToken(1L, "testuser", List.of("ADMIN"));
-        String username = jwtTokenProvider.getUsernameFromToken(token);
-        assertEquals("testuser", username);
+        assertEquals("testuser", jwtTokenProvider.getUsernameFromToken(token));
     }
 
     @Test
     void getUserIdFromToken() {
         String token = jwtTokenProvider.generateToken(1L, "testuser", List.of("ADMIN"));
-        Long userId = jwtTokenProvider.getUserIdFromToken(token);
-        assertEquals(1L, userId);
+        assertEquals(1L, jwtTokenProvider.getUserIdFromToken(token));
     }
 
     @Test
@@ -71,17 +69,35 @@ class JwtTokenProviderTest {
 
     @Test
     void rejectExpiredToken() {
-        JwtTokenProvider shortLivedProvider = new JwtTokenProvider(
-                "dGVzdC1qd3Qtc2VjcmV0LWtleS1mb3ItdGVzdGluZy1wdXJwb3Nlcy1vbmx5LWF0LWxlYXN0LTI1Ni1iaXRz",
-                0L);
-        String token = shortLivedProvider.generateToken(1L, "testuser", List.of("ADMIN"));
-        assertFalse(shortLivedProvider.validateToken(token));
+        JwtTokenProvider shortLived = new JwtTokenProvider(VALID_SECRET, 0L);
+        String token = shortLived.generateToken(1L, "testuser", List.of("ADMIN"));
+        assertFalse(shortLived.validateToken(token));
     }
 
     @Test
     void rejectTamperedToken() {
         String token = jwtTokenProvider.generateToken(1L, "testuser", List.of("ADMIN"));
-        String tampered = token + "tampered";
-        assertFalse(jwtTokenProvider.validateToken(tampered));
+        assertFalse(jwtTokenProvider.validateToken(token + "tampered"));
+    }
+
+    @Test
+    void rejectBlankSecret() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> new JwtTokenProvider("", 86400000L));
+        assertTrue(ex.getMessage().contains("JWT密钥未配置"));
+    }
+
+    @Test
+    void rejectNullSecret() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> new JwtTokenProvider(null, 86400000L));
+        assertTrue(ex.getMessage().contains("JWT密钥未配置"));
+    }
+
+    @Test
+    void rejectShortSecret() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> new JwtTokenProvider("short", 86400000L));
+        assertTrue(ex.getMessage().contains("JWT密钥长度不足"));
     }
 }

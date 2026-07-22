@@ -21,6 +21,13 @@ public class JwtTokenProvider {
     public JwtTokenProvider(
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.expiration}") long expiration) {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException("JWT密钥未配置！请设置环境变量 JWT_SECRET（至少256位/32字节）");
+        }
+        if (secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException("JWT密钥长度不足！当前" + secret.getBytes(StandardCharsets.UTF_8).length
+                    + "字节，至少需要32字节。请设置环境变量 JWT_SECRET");
+        }
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expiration = expiration;
     }
