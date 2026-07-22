@@ -1,0 +1,72 @@
+:root {
+  --primary: #409EFF;
+  --success: #67C23A;
+  --warning: #E6A23C;
+  --danger: #F56C6C;
+  --info: #909399;
+  --bg: #F2F3F5;
+  --card: #FFFFFF;
+  --text: #303133;
+  --text2: #909399;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.page-container {
+  min-height: 100vh;
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.page-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.stat-card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.stat-card .value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.stat-card .label {
+  font-size: 0.85rem;
+  color: var(--text2);
+  margin-top: 4px;
+}
+
+.risk-critical { color: #8B0000; background: #FFF0F0; }
+.risk-high { color: #D32F2F; background: #FFEBEE; }
+.risk-medium { color: #E6A23C; background: #FFF8E1; }
+.risk-low { color: #67C23A; background: #F0F9EB; }
+
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
