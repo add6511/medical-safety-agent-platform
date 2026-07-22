@@ -1,0 +1,84 @@
+{
+  "ruleset_version": "synthetic-1.0.0",
+  "description": "合成教学安全规则集 v1 - 仅供教学演示，不构成真实临床指南",
+  "rules": [
+    {
+      "rule_id": "consciousness_change",
+      "name": "意识状态变化",
+      "version": "1.0.0",
+      "priority": 100,
+      "risk_level": "CRITICAL",
+      "match_conditions": {
+        "red_flags": ["consciousness_change"],
+        "keywords": ["意识模糊", "昏迷", "嗜睡", "谵妄", "神志不清", "叫不醒"]
+      },
+      "display_message": "【合成教学示例】检测到意识状态变化信号，建议立即就医评估。",
+      "synthetic_source": "合成教学示例 - 非真实临床指南"
+    },
+    {
+      "rule_id": "severe_breathing_difficulty",
+      "name": "严重呼吸困难",
+      "version": "1.0.0",
+      "priority": 95,
+      "risk_level": "CRITICAL",
+      "match_conditions": {
+        "red_flags": ["severe_breathing_difficulty"],
+        "keywords": ["严重呼吸困难", "喘不上气", "窒息感", "无法呼吸", "嘴唇发紫"]
+      },
+      "display_message": "【合成教学示例】检测到严重呼吸困难信号，建议立即拨打急救电话。",
+      "synthetic_source": "合成教学示例 - 非真实临床指南"
+    },
+    {
+      "rule_id": "uncontrolled_bleeding",
+      "name": "无法控制的出血",
+      "version": "1.0.0",
+      "priority": 90,
+      "risk_level": "CRITICAL",
+      "match_conditions": {
+        "red_flags": ["uncontrolled_bleeding"],
+        "keywords": ["大量出血", "止不住血", "出血不止", "血流不止"]
+      },
+      "display_message": "【合成教学示例】检测到无法控制的出血信号，建议立即就医。",
+      "synthetic_source": "合成教学示例 - 非真实临床指南"
+    },
+    {
+      "rule_id": "self_harm_risk",
+      "name": "自伤风险信息",
+      "version": "1.0.0",
+      "priority": 85,
+      "risk_level": "CRITICAL",
+      "match_conditions": {
+        "red_flags": ["self_harm_risk"],
+        "keywords": ["不想活", "自杀", "自伤", "轻生", "活不下去"]
+      },
+      "display_message": "【合成教学示例】检测到自伤风险信号，建议立即联系心理危机干预热线或就医。",
+      "synthetic_source": "合成教学示例 - 非真实临床指南"
+    },
+    {
+      "rule_id": "pregnancy_emergency_signal",
+      "name": "孕产相关紧急信号",
+      "version": "1.0.0",
+      "priority": 80,
+      "risk_level": "HIGH",
+      "match_conditions": {
+        "red_flags": ["pregnancy_emergency_signal"],
+        "keywords": ["孕期出血", "宫外孕", "先兆子痫", "胎动异常", "产前大出血"]
+      },
+      "display_message": "【合成教学示例】检测到孕产相关紧急信号，建议立即就医。",
+      "synthetic_source": "合成教学示例 - 非真实临床指南"
+    },
+    {
+      "rule_id": "persistent_chest_discomfort",
+      "name": "持续胸部不适",
+      "version": "1.0.0",
+      "priority": 75,
+      "risk_level": "HIGH",
+      "match_conditions": {
+        "red_flags": ["persistent_chest_discomfort"],
+        "keywords": ["持续胸痛", "胸闷加重", "压榨性胸痛", "胸口发紧"]
+      },
+      "display_message": "【合成教学示例】检测到持续胸部不适信号，建议尽快就医评估心脏状况。",
+      "synthetic_source": "合成教学示例 - 非真实临床指南"
+    }
+  ]
+}

@@ -14,9 +14,11 @@ from app.core.config import settings
 from app.core.logging import setup_logging
 from app.api.router import api_router
 from app.api.routes.knowledge import set_knowledge_service
+from app.api.routes.preconsultation import set_preconsultation_service
 from app.rag.embedding import create_embedding_provider
 from app.rag.vector_store import create_vector_store
 from app.services.knowledge_service import KnowledgeService
+from app.services.preconsultation_service import PreconsultationService
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,11 @@ async def lifespan(app: FastAPI):
         knowledge_service = KnowledgeService(vector_store, embedding_provider)
         set_knowledge_service(knowledge_service)
         logger.info("知识库服务初始化成功")
+
+        # 初始化预问诊服务
+        preconsultation_service = PreconsultationService(knowledge_service)
+        set_preconsultation_service(preconsultation_service)
+        logger.info("预问诊服务初始化成功")
     except Exception as e:
         logger.error("知识库服务初始化失败: %s", type(e).__name__)
         # 不阻止服务启动，知识库接口将返回 503

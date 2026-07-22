@@ -62,6 +62,23 @@ class Settings(BaseSettings):
     EMBEDDING_API_KEY: str = ""
     EMBEDDING_MODEL: str = ""
 
+    # ===== Agent 相关配置 =====
+
+    # Agent 模式：mock（模拟）或 real（真实模型）
+    AGENT_MODE: str = "mock"
+
+    # 安全规则集版本
+    SAFETY_RULESET_VERSION: str = "synthetic-1.0.0"
+
+    # 模型版本标识
+    MODEL_VERSION: str = "mock-medical-agent-v1"
+
+    # Prompt 版本标识
+    PROMPT_VERSION: str = "preconsultation-v1"
+
+    # 是否启用模型风险建议
+    ENABLE_MODEL_RISK_SUGGESTION: bool = True
+
     @field_validator("MODEL_API_KEY")
     @classmethod
     def validate_api_key(cls, v: str) -> str:

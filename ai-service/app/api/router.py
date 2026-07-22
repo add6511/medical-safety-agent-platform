@@ -6,6 +6,7 @@ API 路由注册中心
 from fastapi import APIRouter
 from app.api.routes.health import router as health_router
 from app.api.routes.knowledge import router as knowledge_router
+from app.api.routes.preconsultation import router as preconsultation_router
 
 # 主路由：挂载所有子路由
 api_router = APIRouter()
@@ -18,6 +19,9 @@ v1_router = APIRouter(prefix="/api/v1")
 
 # 知识库路由
 v1_router.include_router(knowledge_router)
+
+# 预问诊审核路由
+v1_router.include_router(preconsultation_router)
 
 # 后续在此处挂载其他业务路由，例如：
 # v1_router.include_router(chat_router, prefix="/chat", tags=["问诊"])
