@@ -160,6 +160,29 @@ python -m app.evaluation --dataset evaluation/datasets/synthetic_cases_v1.json -
 # reports/evaluation/latest/report.md
 ```
 
+## 消融对比评测
+
+运行三方案消融对比评测（no_rag / rag_only / rag_multi_agent）：
+
+```powershell
+python -m app.evaluation --dataset evaluation/datasets/synthetic_cases_v1.json --output-dir reports/evaluation/latest --ablation
+```
+
+三种模式说明：
+
+| 模式 | 说明 |
+|------|------|
+| no_rag | 不执行知识检索，不使用多Agent流程，仅使用模型建议风险和简单红旗匹配 |
+| rag_only | 执行知识库检索并返回引用，但不执行完整多Agent监督流程 |
+| rag_multi_agent | 完整流程：RAG + 规则引擎 + 多Agent + 输入安全检测 |
+
+消融报告文件：
+- `ablation_summary.json` - 三模式指标汇总
+- `ablation_case_results.csv` - 每案例三模式结果
+- `ablation_report.md` - 中文对比报告
+
+**声明：三种方案均为合成教学消融实验，no_rag 和 rag_only 不是可部署的医疗流程，指标不代表真实模型或临床性能。**
+
 ## 接口契约
 
 详见 `docs/API_CONTRACT.md`，包含所有接口的请求/响应示例和字段说明。

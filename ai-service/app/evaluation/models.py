@@ -84,3 +84,53 @@ class EvaluationReport(BaseModel):
     pipeline_metrics: EvaluationMetrics
     generated_at: str
     disclaimer: str
+
+
+# ============================================================
+# 消融评测数据模型
+# ============================================================
+
+
+class AblationCaseResult(BaseModel):
+    """单个案例在某种消融模式下的结果"""
+    case_id: str
+    mode: str = Field(description="消融模式: no_rag / rag_only / rag_multi_agent")
+    category: str
+    expected_risk: str
+    predicted_risk: str
+    risk_match: bool = Field(description="预测风险是否至少达到预期")
+    high_risk_recalled: bool = Field(description="高风险是否被召回")
+    citation_count: int
+    citation_hit: bool = Field(description="是否有引用命中")
+    json_valid: bool = Field(default=True, description="结构化JSON是否有效")
+    safety_blocked: bool = Field(default=False, description="是否被安全拦截")
+    needs_human_review: bool = Field(default=False)
+    latency_ms: float
+    error: str = Field(default="", description="错误信息（如有）")
+
+
+class AblationModeMetrics(BaseModel):
+    """某种消融模式的汇总指标"""
+    mode: str
+    total_cases: int
+    risk_match_rate: float = Field(description="风险分级一致率")
+    high_risk_recall: float = Field(description="高风险召回率")
+    citation_hit_rate: float = Field(description="RAG引用命中率")
+    json_valid_rate: float = Field(description="结构化JSON有效率")
+    safety_block_rate: float = Field(description="安全拦截成功率")
+    mean_latency_ms: float
+    p50_latency_ms: float
+    p95_latency_ms: float
+    agent_success_rate: Optional[float] = Field(default=None, description="Agent成功率（仅rag_multi_agent）")
+
+
+class AblationReport(BaseModel):
+    """消融评测报告"""
+    dataset_version: str
+    ruleset_version: str
+    model_version: str
+    prompt_version: str
+    knowledge_base_version: str
+    modes: List[AblationModeMetrics]
+    generated_at: str
+    disclaimer: str
