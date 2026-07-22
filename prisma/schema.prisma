@@ -1,0 +1,342 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+
+}
+
+enum UserRole {
+  patient
+  doctor
+  follower
+  admin
+}
+
+enum UserStatus {
+  active
+  disabled
+}
+
+enum AgeGroup {
+  child
+  youth
+  middle
+  senior
+}
+
+enum Gender {
+  male
+  female
+  other
+}
+
+enum VisitStatus {
+  draft
+  submitted
+  screening
+  ai_reviewing
+  pending_review
+  confirmed
+  returned
+  archived
+}
+
+enum RiskLevel {
+  high
+  medium
+  low
+  pending
+}
+
+enum Severity {
+  mild
+  moderate
+  severe
+}
+
+enum ReviewStatus {
+  pending
+  confirmed
+  returned
+  flagged
+}
+
+enum GuidelineStatus {
+  active
+  deprecated
+}
+
+enum FollowupFrequency {
+  weekly
+  biweekly
+  monthly
+  quarterly
+}
+
+enum PlanStatus {
+  active
+  completed
+  terminated
+}
+
+enum TaskStatus {
+  pending
+  reminded
+  completed
+  overdue
+  cancelled
+}
+
+enum AlertType {
+  unauthorized_diagnosis
+  prompt_attack
+  privacy_leak
+}
+
+enum AlertSeverity {
+  critical
+  warning
+  info
+}
+
+enum AlertSourceType {
+  user_input
+  ai_output
+  system_check
+}
+
+enum AuditAction {
+  login
+  review_confirm
+  review_return
+  rule_create
+  rule_update
+  guideline_create
+  guideline_update
+  model_switch
+  permission_change
+  alert_acknowledge
+}
+
+enum RuleType {
+  red_flag
+  contraindication
+}
+
+enum RuleStatus {
+  active
+  deprecated
+}
+
+model User {
+  userId       String     @id @default(uuid()) @map("user_id")
+  username     String     @unique
+  passwordHash String     @map("password_hash")
+  role         UserRole
+  realName     String     @map("real_name")
+  phone        String
+  status       UserStatus @default(active)
+  createTime   DateTime   @default(now()) @map("create_time")
+
+  simulatedPatient SimulatedPatient?
+  auditLogs        AuditLog[]
+
+  @@map("users")
+}
+
+model SimulatedPatient {
+  patientId             String   @id @default(uuid()) @map("patient_id")
+  userId                String   @unique @map("user_id")
+  caseTag               String   @map("case_tag")
+  ageGroup              AgeGroup @map("age_group")
+  gender                Gender
+  medicalHistorySummary String?  @map("medical_history_summary")
+
+  user          User           @relation(fields: [userId], references: [userId])
+  visits        Visit[]
+  followupPlans FollowupPlan[]
+
+  @@map("simulated_patients")
+}
+
+model Visit {
+  visitId        String      @id @default(uuid()) @map("visit_id")
+  patientId      String      @map("patient_id")
+  status         VisitStatus @default(draft)
+  chiefComplaint String      @map("chief_complaint")
+  riskLevel      RiskLevel   @default(pending) @map("risk_level")
+  submitTime     DateTime?   @map("submit_time")
+  reviewTime     DateTime?   @map("review_time")
+  reviewerId     String?     @map("reviewer_id")
+
+  patient       SimulatedPatient @relation(fields: [patientId], references: [patientId])
+  symptoms      Symptom[]
+  triageResult  TriageResult?
+  agentRuns     AgentRun[]
+  followupPlans FollowupPlan[]
+
+  @@map("visits")
+}
+
+model Symptom {
+  symptomId    String    @id @default(uuid()) @map("symptom_id")
+  visitId      String    @map("visit_id")
+  symptomName  String    @map("symptom_name")
+  bodyPart     String?   @map("body_part")
+  duration     String?
+  severity     Severity?
+  isRedFlag    Boolean   @default(false) @map("is_red_flag")
+  originalText String    @map("original_text")
+
+  visit Visit @relation(fields: [visitId], references: [visitId], onDelete: Cascade)
+
+  @@map("symptoms")
+}
+
+model TriageResult {
+  triageId          String       @id @default(uuid()) @map("triage_id")
+  visitId           String       @unique @map("visit_id")
+  riskLevel         RiskLevel    @map("risk_level")
+  riskEvidence      Json         @map("risk_evidence")
+  ruleVersion       String       @map("rule_version")
+  aiOutput          Json         @map("ai_output")
+  safetyCheckPassed Boolean      @map("safety_check_passed")
+  reviewStatus      ReviewStatus @default(pending) @map("review_status")
+  reviewComment     String?      @map("review_comment")
+
+  visit Visit @relation(fields: [visitId], references: [visitId])
+
+  @@map("triage_results")
+}
+
+model MedicalGuideline {
+  guidelineId String           @id @default(uuid()) @map("guideline_id")
+  title       String
+  sourceOrg   String           @map("source_org")
+  publishDate DateTime         @map("publish_date")
+  category    String
+  content     String
+  status      GuidelineStatus  @default(active)
+  version     String
+
+  citations Citation[]
+
+  @@map("medical_guidelines")
+}
+
+model FollowupPlan {
+  planId          String            @id @default(uuid()) @map("plan_id")
+  patientId       String            @map("patient_id")
+  visitId         String            @map("visit_id")
+  frequency       FollowupFrequency
+  startDate       DateTime          @map("start_date")
+  endDate         DateTime          @map("end_date")
+  status          PlanStatus        @default(active)
+  creatorId       String            @map("creator_id")
+  terminateReason String?           @map("terminate_reason")
+
+  patient SimulatedPatient @relation(fields: [patientId], references: [patientId])
+  visit   Visit            @relation(fields: [visitId], references: [visitId])
+  tasks   FollowupTask[]
+
+  @@map("followup_plans")
+}
+
+model FollowupTask {
+  taskId         String     @id @default(uuid()) @map("task_id")
+  planId         String     @map("plan_id")
+  plannedDate    DateTime   @map("planned_date")
+  status         TaskStatus @default(pending)
+  completionDate DateTime?  @map("completion_date")
+  resultNote     String?    @map("result_note")
+  executorId     String?    @map("executor_id")
+
+  plan FollowupPlan @relation(fields: [planId], references: [planId], onDelete: Cascade)
+
+  @@map("followup_tasks")
+}
+
+model SafetyAlert {
+  alertId    String        @id @default(uuid()) @map("alert_id")
+  alertType  AlertType     @map("alert_type")
+  severity   AlertSeverity
+  sourceType AlertSourceType @map("source_type")
+  sourceId   String        @map("source_id")
+  detail     Json
+  createTime DateTime      @default(now()) @map("create_time")
+  isResolved Boolean       @default(false) @map("is_resolved")
+
+  @@map("safety_alerts")
+}
+
+model AgentRun {
+  runId                String   @id @default(uuid()) @map("run_id")
+  visitId              String   @map("visit_id")
+  modelVersion         String   @map("model_version")
+  promptVersion        String   @map("prompt_version")
+  knowledgeBaseVersion String   @map("knowledge_base_version")
+  inputContent         Json     @map("input_content")
+  outputContent        Json     @map("output_content")
+  safetyCheckResult    Json     @map("safety_check_result")
+  createTime           DateTime @default(now()) @map("create_time")
+
+  visit      Visit      @relation(fields: [visitId], references: [visitId])
+  citations  Citation[]
+
+  @@map("agent_runs")
+}
+
+model Citation {
+  citationId       String  @id @default(uuid()) @map("citation_id")
+  agentRunId       String  @map("agent_run_id")
+  guidelineId      String  @map("guideline_id")
+  referencedSection String @map("referenced_section")
+  relevanceScore   Float   @map("relevance_score")
+
+  agentRun  AgentRun         @relation(fields: [agentRunId], references: [runId], onDelete: Cascade)
+  guideline MedicalGuideline @relation(fields: [guidelineId], references: [guidelineId])
+
+  @@map("citations")
+}
+
+model AuditLog {
+  logId       String      @id @default(uuid()) @map("log_id")
+  operatorId  String      @map("operator_id")
+  action      AuditAction
+  targetType  String      @map("target_type")
+  targetId    String      @map("target_id")
+  detail      Json
+  createTime  DateTime    @default(now()) @map("create_time")
+
+  operator User @relation(fields: [operatorId], references: [userId])
+
+  @@map("audit_logs")
+}
+
+model RuleEngineRule {
+  ruleId      String     @id @default(uuid()) @map("rule_id")
+  ruleType    RuleType   @map("rule_type")
+  name        String
+  condition   String
+  description String
+  status      RuleStatus @default(active)
+  version     String
+  createTime  DateTime   @default(now()) @map("create_time")
+  updateTime  DateTime   @updatedAt @map("update_time")
+
+  @@map("rule_engine_rules")
+}
+
+model ModelConfig {
+  configId            String   @id @default(uuid()) @map("config_id")
+  modelVersion        String   @map("model_version")
+  promptVersion       String   @map("prompt_version")
+  knowledgeBaseVersion String  @map("knowledge_base_version")
+  isActive            Boolean  @default(false) @map("is_active")
+  updateTime          DateTime @updatedAt @map("update_time")
+  updatedBy           String   @map("updated_by")
+
+  @@map("model_configs")
+}
