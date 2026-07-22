@@ -7,9 +7,9 @@
       </div>
       <el-radio-group v-model="statusFilter" size="small">
         <el-radio-button value="all">全部</el-radio-button>
-        <el-radio-button value="pending">待审核</el-radio-button>
-        <el-radio-button value="reviewing">审核中</el-radio-button>
-        <el-radio-button value="completed">已完成</el-radio-button>
+        <el-radio-button value="待审核">待审核</el-radio-button>
+        <el-radio-button value="审核中">审核中</el-radio-button>
+        <el-radio-button value="已完成">已完成</el-radio-button>
       </el-radio-group>
     </div>
     <el-table :data="filteredCases" max-height="500" @row-click="goReview" style="cursor:pointer">
