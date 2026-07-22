@@ -48,6 +48,8 @@ class AgentContext(BaseModel):
     safety_flags: List[str] = Field(default_factory=list)
     safe_summary: str = Field(default="")
     ruleset_version: str = Field(default="")
+    # 不可信候选输出文本（仅内部审核使用，不得通过API返回）
+    candidate_output_text: str = Field(default="")
 
 
 class BaseAgent(ABC):

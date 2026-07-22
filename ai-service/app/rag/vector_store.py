@@ -213,6 +213,12 @@ class PgVectorStore(VectorStore):
     def __init__(self, database_url: str, dimension: int = 384):
         if not database_url:
             raise ValueError("VECTOR_DATABASE_URL 不能为空")
+        # pgvector 模式下维度必须为 384（与迁移脚本一致）
+        if dimension != 384:
+            raise ValueError(
+                f"pgvector 模式下 EMBEDDING_DIMENSION 必须为 384（当前值: {dimension}）。"
+                "迁移脚本固定使用 vector(384)，不支持其他维度。"
+            )
         self._database_url = database_url
         self._dimension = dimension
         # 不在初始化时连接数据库，延迟到实际使用时

@@ -5,6 +5,9 @@ SafetyReviewAgent - 安全审核 Agent
 
 安全声明：本 Agent 使用可解释的关键字和正则规则进行安全检查，
 仅为课程安全演示，不得描述为真实医疗标准。
+
+candidate_output_text 为不可信候选内容，必须经过审核后才能输出。
+原始不安全候选文本不得通过 API 返回。
 """
 
 import logging
@@ -30,6 +33,13 @@ _PRESCRIPTION_PATTERNS = [
     re.compile(r"\d+\s*(mg|ml|g)\s*(的|每次|每日)", re.IGNORECASE),
 ]
 
+# 取消人工审核的危险表述
+_CANCEL_REVIEW_PATTERNS = [
+    re.compile(r"(不需要|无需|不必|不用)\s*(人工|人工审核|人工复核|人工检查)", re.IGNORECASE),
+    re.compile(r"(已经|已)\s*(排除|确认安全|确认无风险)", re.IGNORECASE),
+    re.compile(r"(可以|能够)\s*(自行|自动)\s*(处理|解决)", re.IGNORECASE),
+]
+
 # 免责声明关键词
 _DISCLAIMER_KEYWORDS = ["仅供教学", "不构成诊断", "不构成治疗建议", "不代表医疗建议"]
 
@@ -43,6 +53,7 @@ class SafetyReviewAgent(BaseAgent):
     def _execute(self, context: AgentContext) -> AgentContext:
         """执行安全审核"""
         flags: List[str] = []
+        intercepted_types: List[str] = []
 
         # 构建待审核文本（安全摘要）
         summary_parts = []
@@ -61,24 +72,40 @@ class SafetyReviewAgent(BaseAgent):
 
         candidate_text = "\n".join(summary_parts)
 
+        # 检查 candidate_output_text（不可信候选内容）
+        if context.candidate_output_text.strip():
+            candidate_text_to_check = context.candidate_output_text
+        else:
+            candidate_text_to_check = candidate_text
+
         # 检查确定性诊断表述
         for pattern in _DIAGNOSIS_PATTERNS:
-            if pattern.search(candidate_text):
+            if pattern.search(candidate_text_to_check):
                 flags.append("contains_definitive_diagnosis")
+                intercepted_types.append("确定性诊断")
                 # 替换不安全文本
                 candidate_text = pattern.sub("[已拦截: 不允许确定性诊断表述]", candidate_text)
                 break
 
         # 检查药物处方或具体剂量
         for pattern in _PRESCRIPTION_PATTERNS:
-            if pattern.search(candidate_text):
+            if pattern.search(candidate_text_to_check):
                 flags.append("contains_prescription_or_dosage")
+                intercepted_types.append("药物处方/剂量")
                 candidate_text = pattern.sub("[已拦截: 不允许药物处方或具体剂量]", candidate_text)
+                break
+
+        # 检查取消人工审核的危险表述
+        for pattern in _CANCEL_REVIEW_PATTERNS:
+            if pattern.search(candidate_text_to_check):
+                flags.append("cancel_human_review_detected")
+                intercepted_types.append("取消人工审核")
                 break
 
         # 检查高风险是否要求人工审核
         if context.final_risk_level in ("HIGH", "CRITICAL") and not context.needs_human_review:
             flags.append("high_risk_missing_human_review")
+            intercepted_types.append("高风险缺人工审核")
             context.needs_human_review = True
 
         # 检查引用字段完整性
@@ -97,7 +124,14 @@ class SafetyReviewAgent(BaseAgent):
             candidate_text += "\n\n【声明】以上内容仅供教学演示，不构成诊断或治疗建议。"
 
         context.safety_flags = flags
+        # safe_summary 只包含审核通过的内容，不包含原始不安全候选文本
         context.safe_summary = candidate_text
+
+        # 构建审计摘要
+        if intercepted_types:
+            self._last_output_summary = f"拦截{len(intercepted_types)}类内容: {', '.join(intercepted_types)}"
+        else:
+            self._last_output_summary = "安全检查通过"
 
         logger.info(
             "安全审核完成。case_id=%s, flags=%s",
@@ -106,3 +140,7 @@ class SafetyReviewAgent(BaseAgent):
         )
 
         return context
+
+    def _build_output_summary(self, context: AgentContext) -> str:
+        """构建有意义的输出摘要"""
+        return getattr(self, "_last_output_summary", "安全检查完成")

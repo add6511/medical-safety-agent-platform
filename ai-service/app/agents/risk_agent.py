@@ -78,6 +78,16 @@ class RiskAssessmentAgent(BaseAgent):
 
         return context
 
+    def _build_output_summary(self, context: AgentContext) -> str:
+        """构建有意义的输出摘要"""
+        parts = [f"规则风险{context.rule_risk_level or 'LOW'}"]
+        if context.model_suggested_risk:
+            parts.append(f"模型建议{context.model_suggested_risk}")
+        if context.model_downgrade_blocked:
+            parts.append("下调已阻止")
+        parts.append(f"最终风险{context.final_risk_level or 'LOW'}")
+        return "，".join(parts)
+
     @staticmethod
     def _parse_risk_level(value: Optional[str]) -> Optional[RiskLevel]:
         """解析风险等级字符串为枚举"""

@@ -61,3 +61,10 @@ class RetrievalAgent(BaseAgent):
             context.retrieved_evidence = []
 
         return context
+
+    def _build_output_summary(self, context: AgentContext) -> str:
+        """构建有意义的输出摘要"""
+        count = len(context.retrieved_evidence)
+        if count == 0:
+            return "知识库为空，已优雅降级"
+        return f"检索到{count}条合成证据"

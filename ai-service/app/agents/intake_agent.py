@@ -62,6 +62,20 @@ class IntakeAgent(BaseAgent):
         context.missing_fields = missing
 
         # 过滤无效红旗标识（保留合法的）
-        context.red_flags = [f for f in context.red_flags if f in VALID_RED_FLAGS]
+        valid_flags = [f for f in context.red_flags if f in VALID_RED_FLAGS]
+        filtered_count = len(context.red_flags) - len(valid_flags)
+        context.red_flags = valid_flags
+
+        # 保存审计摘要数据
+        self._last_red_flag_count = len(valid_flags)
+        self._last_symptom_count = len(normalized)
+        self._last_missing_count = len(missing)
 
         return context
+
+    def _build_output_summary(self, context: AgentContext) -> str:
+        """构建有意义的输出摘要"""
+        red_flag_count = getattr(self, "_last_red_flag_count", len(context.red_flags))
+        symptom_count = getattr(self, "_last_symptom_count", len(context.normalized_symptoms))
+        missing_count = getattr(self, "_last_missing_count", len(context.missing_fields))
+        return f"输入已规范化，症状数量{symptom_count}，红旗数量{red_flag_count}，缺失字段{missing_count}"
