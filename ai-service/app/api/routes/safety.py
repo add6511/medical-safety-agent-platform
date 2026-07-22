@@ -2,7 +2,7 @@
 安全检查 API 路由
 提供 POST /api/v1/safety/check 接口
 
-复用 SafetyReviewAgent 的正则模式进行文本安全检查。
+集成输入安全检测（提示词攻击、PII）和输出安全检测。
 
 安全声明：本接口仅供教学演示，不提供真实诊断或替代医生。
 原始不安全文本不得通过 API 返回。
@@ -20,6 +20,7 @@ from app.agents.safety_agent import (
     _DISCLAIMER_KEYWORDS,
     _PRESCRIPTION_PATTERNS,
 )
+from app.security.input_guard import check_input_safety
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ def _check_text_safety(
     needs_human_review: bool | None = None,
 ) -> dict:
     """
-    执行文本安全检查
+    执行文本安全检查（集成输入安全检测）
 
     Args:
         text: 待审核文本
@@ -44,10 +45,17 @@ def _check_text_safety(
     """
     trace_id = str(uuid.uuid4())
     flags: list[str] = []
-    sanitized = text
     human_review = needs_human_review or False
 
-    # 检查确定性诊断表述（累计所有类型，不提前退出）
+    # 1. 输入安全检测（提示词攻击 + PII）
+    input_guard = check_input_safety(text)
+    flags.extend(input_guard.flags)
+    sanitized = input_guard.sanitized_text
+
+    if input_guard.is_blocked:
+        human_review = True
+
+    # 2. 输出安全检测（诊断、处方、取消审核）
     diagnosis_detected = False
     for pattern in _DIAGNOSIS_PATTERNS:
         if pattern.search(text):
@@ -56,7 +64,6 @@ def _check_text_safety(
             diagnosis_detected = True
             break
 
-    # 检查药物处方或具体剂量
     prescription_detected = False
     for pattern in _PRESCRIPTION_PATTERNS:
         if pattern.search(text):
@@ -65,7 +72,6 @@ def _check_text_safety(
             prescription_detected = True
             break
 
-    # 检查取消人工审核的危险表述
     cancel_detected = False
     for pattern in _CANCEL_REVIEW_PATTERNS:
         if pattern.search(text):
@@ -73,25 +79,26 @@ def _check_text_safety(
             cancel_detected = True
             break
 
-    # 检查 HIGH/CRITICAL 风险是否被降低
+    # 3. 风险降级检查
     if risk_level in ("HIGH", "CRITICAL"):
         if not needs_human_review:
             flags.append("high_risk_missing_human_review")
             human_review = True
 
-    # 确定安全状态：只要存在不安全内容就 blocked
-    has_unsafe = diagnosis_detected or prescription_detected or cancel_detected
-    if has_unsafe:
+    # 4. 确定安全状态
+    has_unsafe_output = diagnosis_detected or prescription_detected or cancel_detected
+    has_injection = input_guard.is_blocked
+
+    if has_injection or has_unsafe_output:
         safety_status = "blocked"
         human_review = True
-        # 替换为安全说明，不泄露原始不安全文本
+        # 替换为安全说明
         sanitized = _BLOCKED_DISCLAIMER
     elif human_review or risk_level in ("HIGH", "CRITICAL"):
         safety_status = "human_review"
     else:
         safety_status = "pass"
 
-    # 确保 sanitized_text 不为空
     if not sanitized.strip():
         sanitized = "【安全拦截】内容已被清理。"
 
@@ -113,13 +120,12 @@ def _check_text_safety(
     description=(
         "对待审核文本进行安全检查。\n\n"
         "**安全声明：本接口仅供教学演示，不提供真实诊断或替代医生。**\n\n"
-        "检查内容：确定性诊断、药物处方、取消人工审核、风险降级。\n\n"
+        "检查内容：提示词攻击、越权指令、敏感信息、确定性诊断、药物处方、取消人工审核、风险降级。\n\n"
         "原始不安全文本不得通过 API 返回。"
     ),
 )
 async def check_safety(request: dict) -> dict:
     """执行安全检查"""
-    # 兼容 text 和 candidate_text 两种字段名
     text = request.get("text") or request.get("candidate_text") or ""
     risk_level = request.get("risk_level")
     needs_human_review = request.get("needs_human_review")

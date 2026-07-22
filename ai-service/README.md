@@ -202,10 +202,21 @@ python -m app.evaluation --dataset evaluation/datasets/synthetic_cases_v1.json -
 
 ## 多 Agent 审核流程
 
-1. **IntakeAgent**：校验和规范化输入，识别症状和红旗
+1. **IntakeAgent**：校验和规范化输入，识别症状和红旗，生成追问问题
 2. **RetrievalAgent**：调用知识库进行 RAG 检索
 3. **RiskAssessmentAgent**：执行规则引擎，模型建议不可下调 HIGH/CRITICAL
 4. **SafetyReviewAgent**：检查输出安全性，拦截不安全内容
+
+## 输入安全检测
+
+在多 Agent 流程之前，对用户输入进行安全检测：
+
+- **提示词攻击检测**：中文/英文提示词注入、系统提示词提取、越权角色指令、人工审核绕过
+- **敏感信息检测与脱敏**：手机号、身份证号、邮箱、银行卡号
+
+检测到提示词攻击时 `safety_status=blocked`，检测到敏感信息时自动脱敏并标记 `needs_human_review`。
+
+**声明：这是基于规则的教学安全检测，不得宣传为完整生产级防护。**
 
 ## 向量存储模式
 

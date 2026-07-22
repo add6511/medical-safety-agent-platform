@@ -56,7 +56,7 @@ async def analyze_triage(request: TriageRequest) -> TriageResponse:
 
     result = service.review(request_data)
 
-    # 映射到统一输出结构
+    # 映射到统一输出结构（包含安全审计字段）
     return TriageResponse(
         case_id=result["case_id"],
         trace_id=result["trace_id"],
@@ -68,5 +68,8 @@ async def analyze_triage(request: TriageRequest) -> TriageResponse:
         missing_information=result["missing_information"],
         followup_questions=result["followup_questions"],
         safety_status=result["safety_status"],
+        safety_flags=result["safety_flags"],
+        sanitized_input=result.get("sanitized_input", ""),
+        needs_human_review=result["needs_human_review"],
         disclaimer=result["disclaimer"],
     )

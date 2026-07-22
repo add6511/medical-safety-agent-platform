@@ -73,5 +73,7 @@ class TriageResponse(BaseModel):
     missing_information: List[str] = Field(description="缺失信息字段")
     followup_questions: List[str] = Field(description="追问问题列表")
     safety_status: str = Field(description="安全状态：pass / blocked / human_review")
+    safety_flags: List[str] = Field(description="安全审核标记列表")
+    sanitized_input: str = Field(description="脱敏后的输入文本")
+    needs_human_review: bool = Field(description="是否需要人工审核")
     disclaimer: str = Field(description="免责声明")
-    trace_id: str = Field(description="请求追踪ID（UUID4）")

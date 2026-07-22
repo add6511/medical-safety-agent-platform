@@ -17,6 +17,7 @@ from app.agents.safety_agent import SafetyReviewAgent
 from app.agents.supervisor import SupervisorAgent
 from app.core.config import settings
 from app.rules.engine import SafetyRuleEngine
+from app.security.input_guard import check_input_safety
 from app.services.knowledge_service import KnowledgeService
 
 logger = logging.getLogger(__name__)
@@ -47,6 +48,13 @@ class PreconsultationService:
         """
         trace_id = str(uuid.uuid4())
 
+        # 对输入进行安全检测
+        free_text = request_data.get("free_text", "")
+        input_guard = check_input_safety(free_text)
+
+        # 对 free_text 脱敏
+        sanitized_free_text = input_guard.sanitized_text
+
         # 构建 Agent 上下文
         context = AgentContext(
             case_id=request_data.get("case_id", "unknown"),
@@ -54,17 +62,30 @@ class PreconsultationService:
             age=request_data.get("age"),
             symptoms=[s if isinstance(s, dict) else s.model_dump() for s in request_data.get("symptoms", [])],
             red_flags=request_data.get("red_flags", []),
-            free_text=request_data.get("free_text", ""),
+            free_text=sanitized_free_text,
             model_suggested_risk=request_data.get("model_suggested_risk"),
         )
 
         # 执行审核流程
         result_context, audit_trail = self._supervisor.process(context)
 
+        # 合并输入安全检测的标志
+        all_safety_flags = list(result_context.safety_flags)
+        for flag in input_guard.flags:
+            if flag not in all_safety_flags:
+                all_safety_flags.append(flag)
+
+        # 更新安全状态
+        result_context.safety_flags = all_safety_flags
+
+        # 如果输入检测被阻止
+        if input_guard.is_blocked:
+            result_context.needs_human_review = True
+
         # 构建响应
         disclaimer = "以上内容仅供教学演示，不构成诊断或治疗建议。如需就医请咨询专业医疗机构。"
 
-        # 将 trace_id 写入审计记录的 input_summary
+        # 审计记录中不包含原始敏感信息
         for record in audit_trail:
             record.input_summary = f"trace_id={trace_id}, {record.input_summary}"
 
@@ -90,9 +111,10 @@ class PreconsultationService:
                 }
                 for ev in result_context.retrieved_evidence
             ],
-            "safety_flags": result_context.safety_flags,
-            "safety_status": _determine_safety_status(result_context),
+            "safety_flags": all_safety_flags,
+            "safety_status": _determine_safety_status(result_context, input_guard.is_blocked),
             "safe_summary": result_context.safe_summary,
+            "sanitized_input": sanitized_free_text,
             "symptom_summary": result_context.symptom_summary,
             "red_flags": result_context.red_flags,
             "missing_information": result_context.missing_fields,
@@ -108,13 +130,20 @@ class PreconsultationService:
         return response
 
 
-def _determine_safety_status(context: AgentContext) -> str:
+def _determine_safety_status(context: AgentContext, input_blocked: bool = False) -> str:
     """根据安全标记确定安全状态"""
-    if "contains_definitive_diagnosis" in context.safety_flags:
+    if input_blocked:
         return "blocked"
-    if "contains_prescription_or_dosage" in context.safety_flags:
-        return "blocked"
-    if "cancel_human_review_detected" in context.safety_flags:
+    blocked_flags = {
+        "contains_definitive_diagnosis",
+        "contains_prescription_or_dosage",
+        "cancel_human_review_detected",
+        "prompt_injection_detected",
+        "system_prompt_extraction_detected",
+        "privilege_escalation_detected",
+        "human_review_bypass_detected",
+    }
+    if blocked_flags & set(context.safety_flags):
         return "blocked"
     if context.needs_human_review:
         return "human_review"

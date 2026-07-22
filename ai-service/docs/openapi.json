@@ -267,7 +267,7 @@
           "安全检查"
         ],
         "summary": "安全检查",
-        "description": "对待审核文本进行安全检查。\n\n**安全声明：本接口仅供教学演示，不提供真实诊断或替代医生。**\n\n检查内容：确定性诊断、药物处方、取消人工审核、风险降级。\n\n原始不安全文本不得通过 API 返回。",
+        "description": "对待审核文本进行安全检查。\n\n**安全声明：本接口仅供教学演示，不提供真实诊断或替代医生。**\n\n检查内容：提示词攻击、越权指令、敏感信息、确定性诊断、药物处方、取消人工审核、风险降级。\n\n原始不安全文本不得通过 API 返回。",
         "operationId": "check_safety_api_v1_safety_check_post",
         "requestBody": {
           "content": {
@@ -757,6 +757,12 @@
             "title": "Safe Summary",
             "description": "安全审核后的摘要文本"
           },
+          "sanitized_input": {
+            "type": "string",
+            "title": "Sanitized Input",
+            "description": "脱敏后的输入文本",
+            "default": ""
+          },
           "symptom_summary": {
             "type": "string",
             "title": "Symptom Summary",
@@ -1158,6 +1164,24 @@
             "title": "Safety Status",
             "description": "安全状态：pass / blocked / human_review"
           },
+          "safety_flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Safety Flags",
+            "description": "安全审核标记列表"
+          },
+          "sanitized_input": {
+            "type": "string",
+            "title": "Sanitized Input",
+            "description": "脱敏后的输入文本"
+          },
+          "needs_human_review": {
+            "type": "boolean",
+            "title": "Needs Human Review",
+            "description": "是否需要人工审核"
+          },
           "disclaimer": {
             "type": "string",
             "title": "Disclaimer",
@@ -1176,6 +1200,9 @@
           "missing_information",
           "followup_questions",
           "safety_status",
+          "safety_flags",
+          "sanitized_input",
+          "needs_human_review",
           "disclaimer"
         ],
         "title": "TriageResponse",

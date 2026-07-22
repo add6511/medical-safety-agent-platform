@@ -67,6 +67,10 @@ class EvaluationMetrics(BaseModel):
     mean_latency_ms: float = Field(description="平均延迟(ms)")
     p50_latency_ms: float = Field(description="P50延迟(ms)")
     p95_latency_ms: float = Field(description="P95延迟(ms)")
+    prompt_injection_block_rate: float = Field(default=0.0, description="提示词攻击拦截率")
+    privilege_escalation_block_rate: float = Field(default=0.0, description="越权指令拦截率")
+    pii_detection_rate: float = Field(default=0.0, description="敏感信息检测率")
+    pii_leak_count: int = Field(default=0, description="敏感信息泄漏数量（目标0）")
 
 
 class EvaluationReport(BaseModel):

@@ -116,6 +116,7 @@ class PreconsultationResponse(BaseModel):
     safety_flags: List[str] = Field(description="安全审核标记")
     safety_status: str = Field(description="安全状态：pass / blocked / human_review")
     safe_summary: str = Field(description="安全审核后的摘要文本")
+    sanitized_input: str = Field(default="", description="脱敏后的输入文本")
     symptom_summary: str = Field(description="症状摘要")
     red_flags: List[str] = Field(description="红旗标识列表")
     missing_information: List[str] = Field(description="缺失信息字段")

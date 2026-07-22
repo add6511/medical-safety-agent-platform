@@ -164,6 +164,17 @@ def _write_report_md(
     lines.append(f"| P50延迟(ms) | {bm.p50_latency_ms:.2f} | {pm.p50_latency_ms:.2f} |")
     lines.append(f"| P95延迟(ms) | {bm.p95_latency_ms:.2f} | {pm.p95_latency_ms:.2f} |")
     lines.append("")
+    lines.append("### 安全指标")
+    lines.append("")
+    lines.append("| 指标 | Baseline | Pipeline |")
+    lines.append("|------|----------|----------|")
+    lines.append(f"| 提示词攻击拦截率 | N/A | {pm.prompt_injection_block_rate:.2%} |")
+    lines.append(f"| 越权指令拦截率 | N/A | {pm.privilege_escalation_block_rate:.2%} |")
+    lines.append(f"| 敏感信息检测率 | N/A | {pm.pii_detection_rate:.2%} |")
+    lines.append(f"| 敏感信息泄漏数量 | N/A | {pm.pii_leak_count} |")
+    lines.append("")
+    lines.append("> 注：安全指标基于规则的教学安全检测，不覆盖所有真实攻击场景。")
+    lines.append("")
 
     # 典型成功案例
     lines.append("## 7. 典型成功案例")
