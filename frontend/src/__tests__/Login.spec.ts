@@ -3,7 +3,6 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import ElementPlus from 'element-plus'
 
-// Mock vue-router
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn() }),
   createRouter: vi.fn(),
@@ -15,31 +14,44 @@ describe('Login.vue', () => {
     setActivePinia(createPinia())
   })
 
-  it('renders login form correctly', async () => {
+  it('登录表单正确显示', async () => {
     const { default: Login } = await import('@/views/Login.vue')
-    const wrapper = mount(Login, {
-      global: { plugins: [createPinia(), ElementPlus] },
-    })
-    expect(wrapper.find('h2').text()).toContain('医疗预检')
+    const wrapper = mount(Login, { global: { plugins: [createPinia(), ElementPlus] } })
+    expect(wrapper.find('h2').text()).toContain('医疗预检安全预警平台')
     expect(wrapper.find('.el-form').exists()).toBe(true)
   })
 
-  it('has three demo role tags', async () => {
+  it('包含三个演示角色登录标签', async () => {
     const { default: Login } = await import('@/views/Login.vue')
-    const wrapper = mount(Login, {
-      global: { plugins: [createPinia(), ElementPlus] },
-    })
+    const wrapper = mount(Login, { global: { plugins: [createPinia(), ElementPlus] } })
     const tags = wrapper.findAll('.el-tag')
-    // At least 3 demo login tags should exist
     expect(tags.length).toBeGreaterThanOrEqual(3)
   })
 
-  it('validates empty form submission', async () => {
+  it('空表单校验——邮箱和密码必填', async () => {
     const { default: Login } = await import('@/views/Login.vue')
-    const wrapper = mount(Login, {
-      global: { plugins: [createPinia(), ElementPlus] },
-    })
+    const wrapper = mount(Login, { global: { plugins: [createPinia(), ElementPlus] } })
     const form = wrapper.findComponent({ name: 'ElForm' })
     expect(form.exists()).toBe(true)
+  })
+
+  it('演示角色快速登录', async () => {
+    const { default: Login } = await import('@/views/Login.vue')
+    const wrapper = mount(Login, { global: { plugins: [createPinia(), ElementPlus] } })
+    const doctorTag = wrapper.findAll('.el-tag').find(t => t.text().includes('医务人员'))
+    expect(doctorTag).toBeTruthy()
+  })
+
+  it('显示MOCK Token提示', async () => {
+    const { default: Login } = await import('@/views/Login.vue')
+    const wrapper = mount(Login, { global: { plugins: [createPinia(), ElementPlus] } })
+    const html = wrapper.html()
+    expect(html).toContain('MOCK')
+  })
+
+  it('显示教学演示免责声明', async () => {
+    const { default: Login } = await import('@/views/Login.vue')
+    const wrapper = mount(Login, { global: { plugins: [createPinia(), ElementPlus] } })
+    expect(wrapper.text()).toContain('教学演示')
   })
 })
