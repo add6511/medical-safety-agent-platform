@@ -13,6 +13,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.api.router import api_router
+from app.api.routes.knowledge import set_knowledge_service
+from app.rag.embedding import create_embedding_provider
+from app.rag.vector_store import create_vector_store
+from app.services.knowledge_service import KnowledgeService
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +27,19 @@ async def lifespan(app: FastAPI):
     # 启动阶段
     setup_logging()
     logger.info("服务启动中... 应用名称=%s, 版本=%s, 环境=%s", settings.APP_NAME, settings.APP_VERSION, settings.APP_ENV)
-    logger.info("AI模式=%s", settings.AI_MODE)
+    logger.info("AI模式=%s, 向量存储模式=%s, Embedding模式=%s", settings.AI_MODE, settings.VECTOR_STORE_MODE, settings.EMBEDDING_MODE)
+
+    # 初始化 RAG 服务
+    try:
+        embedding_provider = create_embedding_provider()
+        vector_store = create_vector_store()
+        knowledge_service = KnowledgeService(vector_store, embedding_provider)
+        set_knowledge_service(knowledge_service)
+        logger.info("知识库服务初始化成功")
+    except Exception as e:
+        logger.error("知识库服务初始化失败: %s", type(e).__name__)
+        # 不阻止服务启动，知识库接口将返回 503
+
     yield
     # 关闭阶段
     logger.info("服务正在关闭...")
@@ -36,7 +52,8 @@ def create_app() -> FastAPI:
         version=settings.APP_VERSION,
         description=(
             "基层医疗安全型预问诊AI服务接口文档。\n\n"
-            "**安全声明：本服务仅供教学演示，不提供真实诊断或替代医生。**"
+            "**安全声明：本服务仅供教学演示，不提供真实诊断或替代医生。**\n\n"
+            "知识库内容仅供教学参考，不构成诊断或治疗建议。"
         ),
         lifespan=lifespan,
         docs_url="/docs",
