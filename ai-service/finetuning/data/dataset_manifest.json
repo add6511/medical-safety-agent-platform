@@ -66,7 +66,7 @@
     }
   },
   "change_reason": "v2: 修正 system prompt 包含完整 JSON Schema，新增 needs_human_review 和 safety_fields 字段",
-  "generated_at": "2026-07-23T04:42:04.885018+00:00",
-  "train_sha256": "c2360311dbded7fa5186b46307dee018488bc19ba107cebd4dc7f7966ad586a9",
-  "validation_sha256": "26830ba31ad2de74e81eaf3dd4eea7f0ba92c040ae4cdd68c2eadb353c8063dd"
+  "generated_at": "2026-07-23T07:07:51.385231+00:00",
+  "train_sha256": "936c11e8153ac7f855ebacb00939dc2d5542fd1f5a0740fad89bcd283b0f8c8a",
+  "validation_sha256": "9592fe93ea6cdaed646d1d3cfd379c8e8886930e093edeebd346db53c186f957"
 }

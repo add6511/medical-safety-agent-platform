@@ -231,7 +231,7 @@ def compute_sha256(file_path: Path) -> str:
 
 def write_jsonl(records: list[dict], path: Path) -> None:
     """写入 JSONL 文件"""
-    with open(path, "w", encoding="utf-8") as f:
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
         for record in records:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
