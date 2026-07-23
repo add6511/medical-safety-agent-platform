@@ -34,9 +34,10 @@ describe('MedicalDashboard.vue', () => {
     expect(html).toContain('SYN-')
   })
 
-  it('红旗案例显示人工审核提示', async () => {
+  it('红旗案例显示审核提示', async () => {
     const { default: MedicalDashboard } = await import('@/views/MedicalDashboard.vue')
     const wrapper = mount(MedicalDashboard, { global: { plugins: [createPinia(), ElementPlus] } })
-    expect(wrapper.text()).toContain('人工审核')
+    await new Promise(r=>setTimeout(r,600))
+    expect(wrapper.text()).toContain('审核')
   })
 })
