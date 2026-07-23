@@ -58,4 +58,8 @@ public class AgentExecutionLog {
             this.status = AgentExecutionStatus.RUNNING;
         }
     }
+
+    public boolean isFinished() {
+        return this.status == AgentExecutionStatus.COMPLETED || this.status == AgentExecutionStatus.FAILED;
+    }
 }

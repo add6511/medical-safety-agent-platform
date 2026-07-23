@@ -27,13 +27,23 @@ class PreConsultationStatusTest {
     }
 
     @Test
-    void symptomCollectedCannotTransitionToCompleted() {
-        assertFalse(PreConsultationStatus.SYMPTOM_COLLECTED.canTransitionTo(PreConsultationStatus.COMPLETED));
+    void aiTriageCompletedCanTransitionToMedicalReviewCompleted() {
+        assertTrue(PreConsultationStatus.AI_TRIAGE_COMPLETED.canTransitionTo(PreConsultationStatus.MEDICAL_REVIEW_COMPLETED));
     }
 
     @Test
-    void aiTriageCompletedCanTransitionToMedicalReviewCompleted() {
-        assertTrue(PreConsultationStatus.AI_TRIAGE_COMPLETED.canTransitionTo(PreConsultationStatus.MEDICAL_REVIEW_COMPLETED));
+    void aiTriageCompletedCanTransitionToNeedsRevision() {
+        assertTrue(PreConsultationStatus.AI_TRIAGE_COMPLETED.canTransitionTo(PreConsultationStatus.NEEDS_REVISION));
+    }
+
+    @Test
+    void needsRevisionCanTransitionToAiTriageCompleted() {
+        assertTrue(PreConsultationStatus.NEEDS_REVISION.canTransitionTo(PreConsultationStatus.AI_TRIAGE_COMPLETED));
+    }
+
+    @Test
+    void needsRevisionCanTransitionToCancelled() {
+        assertTrue(PreConsultationStatus.NEEDS_REVISION.canTransitionTo(PreConsultationStatus.CANCELLED));
     }
 
     @Test
@@ -50,7 +60,6 @@ class PreConsultationStatusTest {
     @Test
     void cancelledCannotTransitionToAny() {
         assertFalse(PreConsultationStatus.CANCELLED.canTransitionTo(PreConsultationStatus.INITIATED));
-        assertFalse(PreConsultationStatus.CANCELLED.canTransitionTo(PreConsultationStatus.COMPLETED));
     }
 
     @Test
@@ -58,6 +67,7 @@ class PreConsultationStatusTest {
         assertTrue(PreConsultationStatus.INITIATED.canTransitionTo(PreConsultationStatus.CANCELLED));
         assertTrue(PreConsultationStatus.SYMPTOM_COLLECTED.canTransitionTo(PreConsultationStatus.CANCELLED));
         assertTrue(PreConsultationStatus.AI_TRIAGE_COMPLETED.canTransitionTo(PreConsultationStatus.CANCELLED));
+        assertTrue(PreConsultationStatus.NEEDS_REVISION.canTransitionTo(PreConsultationStatus.CANCELLED));
         assertTrue(PreConsultationStatus.MEDICAL_REVIEW_COMPLETED.canTransitionTo(PreConsultationStatus.CANCELLED));
     }
 }

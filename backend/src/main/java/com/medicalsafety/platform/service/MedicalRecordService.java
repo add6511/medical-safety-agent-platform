@@ -11,6 +11,7 @@ import com.medicalsafety.platform.exception.BusinessException;
 import com.medicalsafety.platform.exception.ResourceNotFoundException;
 import com.medicalsafety.platform.repository.MedicalRecordRepository;
 import com.medicalsafety.platform.repository.SymptomRepository;
+import com.medicalsafety.platform.security.RequestContextHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class MedicalRecordService {
     private final MedicalRecordRepository medicalRecordRepository;
     private final SymptomRepository symptomRepository;
     private final AuditLogService auditLogService;
+    private final RequestContextHelper requestContextHelper;
 
     @Transactional
     public MedicalRecordResponse createRecord(CreateMedicalRecordRequest request, Long operatorId, List<String> roles) {
@@ -54,8 +56,8 @@ public class MedicalRecordService {
                 .build();
 
         record = medicalRecordRepository.save(record);
-        auditLogService.log(operatorId, null, "CREATE", "MEDICAL_RECORD", record.getId(),
-                "创建就诊记录: " + record.getCaseCode(), null, null);
+        auditLogService.log(operatorId, requestContextHelper.getCurrentUsername(), "CREATE", "MEDICAL_RECORD", record.getId(),
+                "创建就诊记录: " + record.getCaseCode(), requestContextHelper.getClientIp(), requestContextHelper.getTraceId());
 
         return toRecordResponse(record);
     }
@@ -91,8 +93,8 @@ public class MedicalRecordService {
         checkOwnerOrStaff(record, operatorId, roles, "归档");
         record.setStatus(MedicalRecordStatus.ARCHIVED);
         record = medicalRecordRepository.save(record);
-        auditLogService.log(operatorId, null, "ARCHIVE", "MEDICAL_RECORD", record.getId(),
-                "归档就诊记录: " + record.getCaseCode(), null, null);
+        auditLogService.log(operatorId, requestContextHelper.getCurrentUsername(), "ARCHIVE", "MEDICAL_RECORD", record.getId(),
+                "归档就诊记录: " + record.getCaseCode(), requestContextHelper.getClientIp(), requestContextHelper.getTraceId());
         return toRecordResponse(record);
     }
 
@@ -112,8 +114,8 @@ public class MedicalRecordService {
                 .build();
 
         symptom = symptomRepository.save(symptom);
-        auditLogService.log(operatorId, null, "CREATE", "SYMPTOM", symptom.getId(),
-                "添加症状: " + symptom.getSymptomName(), null, null);
+        auditLogService.log(operatorId, requestContextHelper.getCurrentUsername(), "CREATE", "SYMPTOM", symptom.getId(),
+                "添加症状: " + symptom.getSymptomName(), requestContextHelper.getClientIp(), requestContextHelper.getTraceId());
         return toSymptomResponse(symptom);
     }
 
@@ -133,8 +135,8 @@ public class MedicalRecordService {
         MedicalRecord record = findRecordOrThrow(symptom.getRecordId());
         checkOwnerOrStaff(record, operatorId, roles, "删除症状");
         symptomRepository.delete(symptom);
-        auditLogService.log(operatorId, null, "DELETE", "SYMPTOM", symptomId,
-                "删除症状: " + symptom.getSymptomName(), null, null);
+        auditLogService.log(operatorId, requestContextHelper.getCurrentUsername(), "DELETE", "SYMPTOM", symptomId,
+                "删除症状: " + symptom.getSymptomName(), requestContextHelper.getClientIp(), requestContextHelper.getTraceId());
     }
 
     private void checkReadAccess(MedicalRecord record, Long operatorId, List<String> roles) {

@@ -140,11 +140,31 @@ public class GlobalExceptionHandler {
         String traceId = UUID.randomUUID().toString();
         log.warn("Business error: path={}, code={}, traceId={}", request.getRequestURI(), ex.getErrorCode(), traceId);
 
+        HttpStatus status = "CONCURRENT_MODIFICATION".equals(ex.getErrorCode()) ? HttpStatus.CONFLICT : HttpStatus.BAD_REQUEST;
+
+        ErrorResponse response = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(status.value())
+                .errorCode(ex.getErrorCode())
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .traceId(traceId)
+                .build();
+
+        return ResponseEntity.status(status).body(response);
+    }
+
+    @ExceptionHandler(org.springframework.dao.OptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLock(org.springframework.dao.OptimisticLockingFailureException ex,
+                                                              HttpServletRequest request) {
+        String traceId = UUID.randomUUID().toString();
+        log.warn("Concurrent modification: path={}, traceId={}", request.getRequestURI(), traceId);
+
         ErrorResponse response = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(409)
-                .errorCode(ex.getErrorCode())
-                .message(ex.getMessage())
+                .errorCode("CONCURRENT_MODIFICATION")
+                .message("数据已被其他操作修改，请刷新后重试")
                 .path(request.getRequestURI())
                 .traceId(traceId)
                 .build();

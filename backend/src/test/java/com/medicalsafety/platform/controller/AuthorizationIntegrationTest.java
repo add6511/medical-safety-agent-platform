@@ -168,7 +168,7 @@ class AuthorizationIntegrationTest {
         String body = objectMapper.writeValueAsString(
                 java.util.Map.of("preConsultationId", 1, "agentType", "SAFETY_CHECK"));
 
-        mockMvc.perform(post("/api/v1/triage-results/agent-logs")
+        mockMvc.perform(post("/api/v1/triage-results/internal/agent-logs")
                         .header("Authorization", "Bearer " + patientToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))

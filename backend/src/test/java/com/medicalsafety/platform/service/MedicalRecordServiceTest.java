@@ -9,6 +9,7 @@ import com.medicalsafety.platform.exception.BusinessException;
 import com.medicalsafety.platform.exception.ResourceNotFoundException;
 import com.medicalsafety.platform.repository.MedicalRecordRepository;
 import com.medicalsafety.platform.repository.SymptomRepository;
+import com.medicalsafety.platform.security.RequestContextHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +30,7 @@ class MedicalRecordServiceTest {
     @Mock private MedicalRecordRepository medicalRecordRepository;
     @Mock private SymptomRepository symptomRepository;
     @Mock private AuditLogService auditLogService;
+    @Mock private RequestContextHelper requestContextHelper;
     @InjectMocks private MedicalRecordService medicalRecordService;
 
     private MedicalRecord testRecord;

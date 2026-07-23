@@ -10,6 +10,7 @@ import com.medicalsafety.platform.exception.ResourceNotFoundException;
 import com.medicalsafety.platform.repository.AgentExecutionLogRepository;
 import com.medicalsafety.platform.repository.PreConsultationRepository;
 import com.medicalsafety.platform.repository.TriageResultRepository;
+import com.medicalsafety.platform.security.RequestContextHelper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -30,6 +31,7 @@ class TriageResultServiceTest {
     @Mock private PreConsultationRepository preConsultationRepository;
     @Mock private AgentExecutionLogRepository agentExecutionLogRepository;
     @Mock private AuditLogService auditLogService;
+    @Mock private RequestContextHelper requestContextHelper;
     @InjectMocks private TriageResultService triageResultService;
 
     private static final List<String> ADMIN_ROLES = List.of("ADMIN");

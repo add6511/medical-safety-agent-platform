@@ -22,8 +22,16 @@ public class TriageResultController {
 
     private final TriageResultService triageResultService;
 
+    @PostMapping("/internal/submit")
+    @Operation(summary = "AI提交分诊结果（内部接口）", description = "AI服务提交分诊结果并原子更新预问诊状态")
+    public ResponseEntity<TriageResultResponse> submitTriageResult(
+            @Valid @RequestBody SubmitTriageResultRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(triageResultService.submitTriageResult(request, getCurrentUserId(), getCurrentRoles()));
+    }
+
     @PostMapping
-    @Operation(summary = "创建分诊结果", description = "保存AI分诊结果、引用来源")
+    @Operation(summary = "创建分诊结果", description = "医务人员手动创建分诊结果")
     public ResponseEntity<TriageResultResponse> createTriageResult(
             @Valid @RequestBody CreateTriageResultRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -36,12 +44,19 @@ public class TriageResultController {
         return ResponseEntity.ok(triageResultService.getTriageResultByPreConsultation(preConsultationId, getCurrentUserId(), getCurrentRoles()));
     }
 
-    @PostMapping("/agent-logs")
-    @Operation(summary = "创建Agent执行记录", description = "保存Agent执行日志")
+    @PostMapping("/internal/agent-logs")
+    @Operation(summary = "创建Agent执行记录（内部接口）", description = "AI服务保存Agent执行日志")
     public ResponseEntity<AgentExecutionLogResponse> createAgentLog(
             @Valid @RequestBody CreateAgentExecutionLogRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(triageResultService.createAgentExecutionLog(request, getCurrentUserId(), getCurrentRoles()));
+    }
+
+    @PutMapping("/internal/agent-logs")
+    @Operation(summary = "更新Agent执行记录（内部接口）", description = "AI服务更新Agent执行日志状态")
+    public ResponseEntity<AgentExecutionLogResponse> updateAgentLog(
+            @Valid @RequestBody UpdateAgentExecutionLogRequest request) {
+        return ResponseEntity.ok(triageResultService.updateAgentExecutionLog(request, getCurrentUserId(), getCurrentRoles()));
     }
 
     @GetMapping("/agent-logs/{preConsultationId}")

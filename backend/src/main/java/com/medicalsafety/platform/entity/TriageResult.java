@@ -21,7 +21,7 @@ public class TriageResult {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "pre_consultation_id", nullable = false)
+    @Column(name = "pre_consultation_id", nullable = false, unique = true)
     private Long preConsultationId;
 
     @Enumerated(EnumType.STRING)
@@ -43,11 +43,21 @@ public class TriageResult {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
         if (this.urgencyLevel == null) {
             this.urgencyLevel = UrgencyLevel.ROUTINE;
         }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 }

@@ -36,6 +36,7 @@ public class DemoDataInitializer {
             createDemoUserIfAbsent("demo_medical", "demo123", "合成医生B", "CASE-M001", RoleType.MEDICAL_STAFF);
             createDemoUserIfAbsent("demo_followup", "demo123", "合成随访员C", "CASE-F001", RoleType.FOLLOWUP_STAFF);
             createDemoUserIfAbsent("demo_admin", "demo123", "合成管理员D", "CASE-A001", RoleType.ADMIN);
+            createDemoUserIfAbsent("demo_ai_service", "demo123", "AI服务", null, RoleType.AI_SERVICE);
 
             log.info("SECURITY_AUDIT | event=DEMO_DATA_INIT_COMPLETE | profile=demo");
         };
