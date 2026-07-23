@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:tc:mysql:8.0:///medical_safety_test?TC_DAEMON=true
+    username: test
+    password: test
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+jwt:
+  secret: dGVzdC1qd3Qtc2VjcmV0LWtleS1mb3ItdGVzdGluZy1wdXJwb3Nlcy1vbmx5LWF0LWxlYXN0LTI1Ni1iaXRz
+  expiration: 86400000
