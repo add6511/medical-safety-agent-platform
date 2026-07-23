@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 虚拟环境
+.venv/
+venv/
+ENV/
+
+# 环境变量（包含敏感信息）
+.env
+
+# 测试和覆盖率
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# IDE 临时文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# 分发和构建
+dist/
+build/
+*.egg-info/
+
+# 微调模型权重和缓存（禁止提交）
+finetuning/output/
+checkpoint-*/
+*.safetensors
+adapter_model.*
+adapter_config.json
+models/
+.cache/huggingface/
+wandb/
+*.bin

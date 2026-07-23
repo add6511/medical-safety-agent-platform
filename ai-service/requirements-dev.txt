@@ -1,0 +1,11 @@
+# 开发和测试依赖（包含生产依赖）
+-r requirements.txt
+
+# 测试框架
+pytest==8.4.1
+pytest-asyncio==1.0.0
+anyio==4.9.0
+
+# 代码质量（可选）
+# ruff==0.11.0
+# mypy==1.15.0

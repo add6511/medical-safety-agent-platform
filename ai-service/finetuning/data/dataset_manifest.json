@@ -1,0 +1,72 @@
+{
+  "dataset_version": "finetune-synthetic-v2",
+  "schema_version": "canonical-english-v1",
+  "source": "synthetic_cases_v1.json",
+  "synthetic_data": true,
+  "train_count": 40,
+  "validation_count": 11,
+  "seed": 42,
+  "train_ratio": 0.8,
+  "system_prompt_includes_schema": true,
+  "output_schema": {
+    "type": "object",
+    "required": [
+      "symptom_summary",
+      "red_flags",
+      "risk_level",
+      "needs_human_review",
+      "missing_information",
+      "followup_questions",
+      "safety_flags",
+      "disclaimer"
+    ],
+    "properties": {
+      "symptom_summary": {
+        "type": "string"
+      },
+      "red_flags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "risk_level": {
+        "type": "string",
+        "enum": [
+          "LOW",
+          "MEDIUM",
+          "HIGH",
+          "CRITICAL"
+        ]
+      },
+      "needs_human_review": {
+        "type": "boolean"
+      },
+      "missing_information": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "followup_questions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "safety_flags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "disclaimer": {
+        "type": "string"
+      }
+    }
+  },
+  "change_reason": "v2: 修正 system prompt 包含完整 JSON Schema，新增 needs_human_review 和 safety_fields 字段",
+  "generated_at": "2026-07-23T07:07:51.385231+00:00",
+  "train_sha256": "936c11e8153ac7f855ebacb00939dc2d5542fd1f5a0740fad89bcd283b0f8c8a",
+  "validation_sha256": "9592fe93ea6cdaed646d1d3cfd379c8e8886930e093edeebd346db53c186f957"
+}

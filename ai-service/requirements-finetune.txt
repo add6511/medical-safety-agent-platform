@@ -1,0 +1,10 @@
+# LoRA 微调可选依赖
+# 不要将此文件加入生产 requirements.txt
+# 安装命令: pip install -r requirements-finetune.txt
+
+torch
+transformers>=4.37.0
+peft
+datasets
+accelerate
+pyyaml

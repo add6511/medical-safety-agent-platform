@@ -1,0 +1,50 @@
+{
+  "dataset_version": "synthetic-v1",
+  "ruleset_version": "synthetic-1.0.0",
+  "model_version": "mock-medical-agent-v1",
+  "prompt_version": "preconsultation-v1",
+  "knowledge_base_version": "synthetic-1.0.0",
+  "modes": [
+    {
+      "mode": "no_rag",
+      "total_cases": 58,
+      "risk_match_rate": 0.931,
+      "high_risk_recall": 0.875,
+      "citation_hit_rate": 0.0,
+      "json_valid_rate": 1.0,
+      "safety_block_rate": 0.0,
+      "mean_latency_ms": 0.0,
+      "p50_latency_ms": 0.0,
+      "p95_latency_ms": 0.0,
+      "agent_success_rate": null
+    },
+    {
+      "mode": "rag_only",
+      "total_cases": 58,
+      "risk_match_rate": 0.931,
+      "high_risk_recall": 0.875,
+      "citation_hit_rate": 1.0,
+      "json_valid_rate": 1.0,
+      "safety_block_rate": 0.0,
+      "mean_latency_ms": 0.35,
+      "p50_latency_ms": 0.33,
+      "p95_latency_ms": 0.44,
+      "agent_success_rate": null
+    },
+    {
+      "mode": "rag_multi_agent",
+      "total_cases": 58,
+      "risk_match_rate": 1.0,
+      "high_risk_recall": 1.0,
+      "citation_hit_rate": 1.0,
+      "json_valid_rate": 1.0,
+      "safety_block_rate": 0.6667,
+      "mean_latency_ms": 22.56,
+      "p50_latency_ms": 0.76,
+      "p95_latency_ms": 66.14,
+      "agent_success_rate": 1.0
+    }
+  ],
+  "generated_at": "2026-07-23T03:48:48.047980+00:00",
+  "disclaimer": "所有评测数据均为合成教学数据，不使用真实病例。三种方案均为合成教学消融实验。no_rag 和 rag_only 不是可部署的医疗流程。指标不代表真实模型或临床性能。当前使用 mock embedding 和合成知识材料。不得将结果宣传为医疗准确率。"
+}

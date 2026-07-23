@@ -1,0 +1,43 @@
+{
+  "python_version": "3.13.13",
+  "os": "Windows 11",
+  "machine": "AMD64",
+  "torch": {
+    "installed": true,
+    "version": "2.12.1+cu130",
+    "cuda_available": true,
+    "cuda_version": "13.0",
+    "gpu_count": 1,
+    "gpu_names": [
+      "NVIDIA GeForce RTX 5070 Laptop GPU"
+    ],
+    "gpu_memory_mb": [
+      8150
+    ]
+  },
+  "transformers": {
+    "installed": true,
+    "version": "5.14.1"
+  },
+  "peft": {
+    "installed": true,
+    "version": "0.19.1"
+  },
+  "datasets": {
+    "installed": true,
+    "version": "5.0.0"
+  },
+  "accelerate": {
+    "installed": true,
+    "version": "1.14.0"
+  },
+  "pyyaml": {
+    "installed": true,
+    "version": "6.0.3"
+  },
+  "training_feasibility": {
+    "can_train": true,
+    "reasons": []
+  },
+  "checked_at": "2026-07-23T01:34:42.292780+00:00"
+}

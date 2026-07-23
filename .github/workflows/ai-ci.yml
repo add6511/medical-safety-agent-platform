@@ -1,0 +1,44 @@
+name: AI Service CI
+
+on:
+  push:
+    branches: [main, feat/ai-rag-agent]
+    paths:
+      - 'ai-service/**'
+      - '.github/workflows/ai-ci.yml'
+  pull_request:
+    branches: [main, feat/ai-rag-agent]
+    paths:
+      - 'ai-service/**'
+      - '.github/workflows/ai-ci.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-service
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Compile check
+        run: python -m compileall -q app scripts
+
+      - name: Export OpenAPI
+        run: python scripts/export_openapi.py
+
+      - name: Verify OpenAPI is up to date
+        run: |
+          git diff --exit-code docs/openapi.json || (echo "::error::OpenAPI spec out of date. Run 'python scripts/export_openapi.py' and commit the result." && exit 1)

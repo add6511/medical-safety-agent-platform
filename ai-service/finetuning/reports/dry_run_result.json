@@ -1,0 +1,52 @@
+{
+  "mode": "dry-run",
+  "training_executed": false,
+  "config": {
+    "model_name": "Qwen/Qwen2.5-0.5B-Instruct",
+    "model_revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+    "task_type": "CAUSAL_LM",
+    "lora_r": 8,
+    "lora_alpha": 16,
+    "lora_dropout": 0.05,
+    "target_modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj"
+    ],
+    "learning_rate": 0.0002,
+    "num_train_epochs": 2,
+    "per_device_train_batch_size": 1,
+    "gradient_accumulation_steps": 8,
+    "max_sequence_length": 1024,
+    "seed": 42,
+    "warmup_ratio": 0.1,
+    "weight_decay": 0.01,
+    "logging_steps": 10,
+    "save_strategy": "epoch",
+    "evaluation_strategy": "epoch",
+    "output_dir": "finetuning/output/qwen2.5-0.5b-lora-v2",
+    "dataset_train": "finetuning/data/train.jsonl",
+    "dataset_validation": "finetuning/data/validation.jsonl",
+    "chat_format": "qwen2.5"
+  },
+  "dataset": {
+    "train_exists": true,
+    "validation_exists": true,
+    "train_count": 40,
+    "validation_count": 11
+  },
+  "environment": {
+    "python_version": "3.13.13",
+    "os": "Windows",
+    "torch_version": "2.12.1+cu130",
+    "cuda_available": true,
+    "gpu_count": 1,
+    "transformers_version": "5.14.1",
+    "peft_version": "0.19.1"
+  },
+  "can_train": true,
+  "limitation_reasons": [],
+  "model_downloaded": false,
+  "adapter_generated": false
+}
