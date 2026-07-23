@@ -101,6 +101,10 @@ public class FollowupTaskService {
             if (task.getStatus() == FollowupTaskStatus.COMPLETED || task.getStatus() == FollowupTaskStatus.CANCELLED) {
                 throw new BusinessException("TASK_ALREADY_FINISHED", "已结束的任务不能修改");
             }
+            if (!isValidTransition(task.getStatus(), newStatus)) {
+                throw new BusinessException("INVALID_STATUS_TRANSITION",
+                        "不允许从 " + task.getStatus() + " 转换到 " + newStatus);
+            }
             task.setStatus(newStatus);
             if (newStatus == FollowupTaskStatus.COMPLETED) {
                 task.setCompletedAt(LocalDateTime.now());
@@ -112,6 +116,14 @@ public class FollowupTaskService {
         task = followupTaskRepository.save(task);
         auditLogService.log(operatorId, requestContextHelper.getCurrentUsername(), "UPDATE", "FOLLOWUP_TASK", task.getId(), "更新随访任务", requestContextHelper.getClientIp(), requestContextHelper.getTraceId());
         return toResponse(task);
+    }
+
+    private boolean isValidTransition(FollowupTaskStatus current, FollowupTaskStatus target) {
+        return switch (current) {
+            case PENDING -> target == FollowupTaskStatus.IN_PROGRESS || target == FollowupTaskStatus.CANCELLED;
+            case IN_PROGRESS -> target == FollowupTaskStatus.COMPLETED || target == FollowupTaskStatus.CANCELLED;
+            case COMPLETED, CANCELLED -> false;
+        };
     }
 
     private void checkAccess(FollowupTask task, Long operatorId, List<String> roles) {

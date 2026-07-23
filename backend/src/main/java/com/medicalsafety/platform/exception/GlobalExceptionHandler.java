@@ -13,16 +13,20 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private String getTraceId(HttpServletRequest request) {
+        Object traceId = request.getAttribute("traceId");
+        return traceId != null ? traceId.toString() : "unknown";
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex,
                                                           HttpServletRequest request) {
-        String traceId = UUID.randomUUID().toString();
+        String traceId = getTraceId(request);
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
                 .reduce((a, b) -> a + "; " + b)
@@ -45,7 +49,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuthentication(AuthenticationException ex,
                                                               HttpServletRequest request) {
-        String traceId = UUID.randomUUID().toString();
+        String traceId = getTraceId(request);
         log.warn("Authentication error: path={}, traceId={}", request.getRequestURI(), traceId);
 
         ErrorResponse response = ErrorResponse.builder()
@@ -64,7 +68,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleCustomAuthentication(
             com.medicalsafety.platform.exception.AuthenticationException ex,
             HttpServletRequest request) {
-        String traceId = UUID.randomUUID().toString();
+        String traceId = getTraceId(request);
         log.warn("Authentication error: path={}, traceId={}", request.getRequestURI(), traceId);
 
         ErrorResponse response = ErrorResponse.builder()
@@ -82,7 +86,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex,
                                                             HttpServletRequest request) {
-        String traceId = UUID.randomUUID().toString();
+        String traceId = getTraceId(request);
         log.warn("Access denied: path={}, traceId={}", request.getRequestURI(), traceId);
 
         ErrorResponse response = ErrorResponse.builder()
@@ -101,7 +105,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleCustomAccessDenied(
             com.medicalsafety.platform.exception.AccessDeniedException ex,
             HttpServletRequest request) {
-        String traceId = UUID.randomUUID().toString();
+        String traceId = getTraceId(request);
         log.warn("Access denied: path={}, traceId={}", request.getRequestURI(), traceId);
 
         ErrorResponse response = ErrorResponse.builder()
@@ -119,7 +123,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex,
                                                          HttpServletRequest request) {
-        String traceId = UUID.randomUUID().toString();
+        String traceId = getTraceId(request);
         log.warn("Resource not found: path={}, traceId={}", request.getRequestURI(), traceId);
 
         ErrorResponse response = ErrorResponse.builder()
@@ -137,7 +141,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusiness(BusinessException ex,
                                                         HttpServletRequest request) {
-        String traceId = UUID.randomUUID().toString();
+        String traceId = getTraceId(request);
         log.warn("Business error: path={}, code={}, traceId={}", request.getRequestURI(), ex.getErrorCode(), traceId);
 
         HttpStatus status = "CONCURRENT_MODIFICATION".equals(ex.getErrorCode()) ? HttpStatus.CONFLICT : HttpStatus.BAD_REQUEST;
@@ -157,7 +161,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(org.springframework.dao.OptimisticLockingFailureException.class)
     public ResponseEntity<ErrorResponse> handleOptimisticLock(org.springframework.dao.OptimisticLockingFailureException ex,
                                                               HttpServletRequest request) {
-        String traceId = UUID.randomUUID().toString();
+        String traceId = getTraceId(request);
         log.warn("Concurrent modification: path={}, traceId={}", request.getRequestURI(), traceId);
 
         ErrorResponse response = ErrorResponse.builder()
@@ -175,7 +179,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnknown(Exception ex,
                                                        HttpServletRequest request) {
-        String traceId = UUID.randomUUID().toString();
+        String traceId = getTraceId(request);
         log.error("Unexpected error: path={}, traceId={}", request.getRequestURI(), traceId, ex);
 
         ErrorResponse response = ErrorResponse.builder()

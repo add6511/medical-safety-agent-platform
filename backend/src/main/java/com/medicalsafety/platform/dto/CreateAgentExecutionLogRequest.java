@@ -20,8 +20,5 @@ public class CreateAgentExecutionLogRequest {
     private String agentType;
 
     private String inputSummary;
-    private String outputSummary;
-    private String status;
-    private String errorMessage;
-    private Long durationMs;
+
 }

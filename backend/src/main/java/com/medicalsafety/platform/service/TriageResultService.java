@@ -138,6 +138,16 @@ public class TriageResultService {
         if (newStatus == AgentExecutionStatus.RUNNING) {
             throw new BusinessException("INVALID_AGENT_STATUS", "不能将记录更新为RUNNING状态");
         }
+        if (newStatus == AgentExecutionStatus.COMPLETED) {
+            if (request.getOutputSummary() == null || request.getOutputSummary().isBlank()) {
+                throw new BusinessException("MISSING_OUTPUT_SUMMARY", "COMPLETED 状态必须提供 outputSummary");
+            }
+        }
+        if (newStatus == AgentExecutionStatus.FAILED) {
+            if (request.getErrorMessage() == null || request.getErrorMessage().isBlank()) {
+                throw new BusinessException("MISSING_ERROR_MESSAGE", "FAILED 状态必须提供 errorMessage");
+            }
+        }
         logEntry.setStatus(newStatus);
         logEntry.setCompletedAt(LocalDateTime.now());
         if (request.getOutputSummary() != null) {

@@ -44,6 +44,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             traceId = UUID.randomUUID().toString();
         }
         request.setAttribute("traceId", traceId);
+        response.setHeader(TRACE_ID_HEADER, traceId);
 
         String token = extractToken(request);
 

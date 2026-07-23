@@ -48,7 +48,7 @@ class TriageResultServiceTest {
         when(preConsultationRepository.existsById(1L)).thenReturn(true);
         AgentExecutionLog logEntry = AgentExecutionLog.builder().id(1L).preConsultationId(1L).agentType("SAFETY_CHECK").status(AgentExecutionStatus.RUNNING).build();
         when(agentExecutionLogRepository.save(any(AgentExecutionLog.class))).thenReturn(logEntry);
-        CreateAgentExecutionLogRequest request = CreateAgentExecutionLogRequest.builder().preConsultationId(1L).agentType("SAFETY_CHECK").status("COMPLETED").build();
+        CreateAgentExecutionLogRequest request = CreateAgentExecutionLogRequest.builder().preConsultationId(1L).agentType("SAFETY_CHECK").build();
         AgentExecutionLogResponse response = triageResultService.createAgentExecutionLog(request, 1L, ADMIN_ROLES);
         assertEquals("RUNNING", response.getStatus());
     }
