@@ -20,6 +20,7 @@ from app.agents.safety_agent import (
     _DISCLAIMER_KEYWORDS,
     _PRESCRIPTION_PATTERNS,
 )
+from app.schemas.safety import SafetyCheckRequest, SafetyCheckResponse
 from app.security.input_guard import check_input_safety
 
 logger = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ def _check_text_safety(
     text: str,
     risk_level: str | None = None,
     needs_human_review: bool | None = None,
-) -> dict:
+) -> SafetyCheckResponse:
     """
     执行文本安全检查（集成输入安全检测）
 
@@ -104,18 +105,19 @@ def _check_text_safety(
 
     disclaimer = "以上内容仅供教学演示，不构成诊断或治疗建议。"
 
-    return {
-        "trace_id": trace_id,
-        "safety_status": safety_status,
-        "safety_flags": flags,
-        "sanitized_text": sanitized,
-        "needs_human_review": human_review,
-        "disclaimer": disclaimer,
-    }
+    return SafetyCheckResponse(
+        trace_id=trace_id,
+        safety_status=safety_status,
+        safety_flags=flags,
+        sanitized_text=sanitized,
+        needs_human_review=human_review,
+        disclaimer=disclaimer,
+    )
 
 
 @router.post(
     "/safety/check",
+    response_model=SafetyCheckResponse,
     summary="安全检查",
     description=(
         "对待审核文本进行安全检查。\n\n"
@@ -124,20 +126,10 @@ def _check_text_safety(
         "原始不安全文本不得通过 API 返回。"
     ),
 )
-async def check_safety(request: dict) -> dict:
+def check_safety(request: SafetyCheckRequest) -> SafetyCheckResponse:
     """执行安全检查"""
-    text = request.get("text") or request.get("candidate_text") or ""
-    risk_level = request.get("risk_level")
-    needs_human_review = request.get("needs_human_review")
-
-    if not text.strip():
-        return {
-            "trace_id": str(uuid.uuid4()),
-            "safety_status": "pass",
-            "safety_flags": [],
-            "sanitized_text": "",
-            "needs_human_review": False,
-            "disclaimer": "以上内容仅供教学演示，不构成诊断或治疗建议。",
-        }
+    text = request.text or request.candidate_text
+    risk_level = request.risk_level
+    needs_human_review = request.needs_human_review
 
     return _check_text_safety(text, risk_level, needs_human_review)

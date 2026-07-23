@@ -23,6 +23,26 @@ from app.services.knowledge_service import KnowledgeService
 logger = logging.getLogger(__name__)
 
 
+def _collect_user_text(request_data: Dict[str, Any]) -> str:
+    """收集所有用户可控文本字段用于安全检测"""
+    parts = []
+    for key in ("case_id", "free_text"):
+        val = request_data.get(key, "")
+        if isinstance(val, str) and val.strip():
+            parts.append(val)
+    for s in request_data.get("symptoms", []):
+        if isinstance(s, dict):
+            parts.append(str(s.get("name", "")))
+            parts.append(str(s.get("duration", "")))
+        elif hasattr(s, "name"):
+            parts.append(str(s.name))
+            parts.append(str(s.duration))
+    for flag in request_data.get("red_flags", []):
+        if isinstance(flag, str):
+            parts.append(flag)
+    return " ".join(parts)
+
+
 class PreconsultationService:
     """预问诊审核服务"""
 
@@ -48,12 +68,17 @@ class PreconsultationService:
         """
         trace_id = str(uuid.uuid4())
 
-        # 对输入进行安全检测
-        free_text = request_data.get("free_text", "")
-        input_guard = check_input_safety(free_text)
+        # 对所有用户输入字段进行统一安全检测
+        all_user_text = _collect_user_text(request_data)
+        input_guard = check_input_safety(all_user_text)
 
-        # 对 free_text 脱敏
-        sanitized_free_text = input_guard.sanitized_text
+        # 对 free_text 单独进行脱敏（如果非空）
+        free_text = request_data.get("free_text", "")
+        if free_text and free_text.strip():
+            free_text_guard = check_input_safety(free_text)
+            sanitized_free_text = free_text_guard.sanitized_text
+        else:
+            sanitized_free_text = ""
 
         # 构建 Agent 上下文
         context = AgentContext(

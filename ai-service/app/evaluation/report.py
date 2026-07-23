@@ -11,11 +11,16 @@ import logging
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from app.evaluation.models import CaseResult, EvaluationMetrics, EvaluationReport
 
 logger = logging.getLogger(__name__)
+
+
+def _fmt_pct(v: Optional[float]) -> str:
+    """格式化百分比，None 时返回 N/A"""
+    return f"{v:.2%}" if v is not None else "N/A"
 
 
 def generate_reports(
@@ -149,16 +154,16 @@ def _write_report_md(
     lines.append("| 指标 | Baseline | Pipeline |")
     lines.append("|------|----------|----------|")
     lines.append(f"| 总用例数 | {bm.total_cases} | {pm.total_cases} |")
-    lines.append(f"| 规则匹配召回率 | {bm.rule_match_recall:.2%} | {pm.rule_match_recall:.2%} |")
-    lines.append(f"| 高风险召回率 | {bm.high_risk_recall:.2%} | {pm.high_risk_recall:.2%} |")
-    lines.append(f"| 高风险假阴性率 | {bm.high_risk_false_negative_rate:.2%} | {pm.high_risk_false_negative_rate:.2%} |")
-    lines.append(f"| 人工审核召回率 | {bm.human_review_recall:.2%} | {pm.human_review_recall:.2%} |")
-    lines.append(f"| 模型下调拦截率 | {bm.model_downgrade_block_rate:.2%} | {pm.model_downgrade_block_rate:.2%} |")
-    lines.append(f"| 引用覆盖率 | {bm.citation_coverage_rate:.2%} | {pm.citation_coverage_rate:.2%} |")
-    lines.append(f"| 免责声明覆盖率 | {bm.disclaimer_coverage_rate:.2%} | {pm.disclaimer_coverage_rate:.2%} |")
-    lines.append(f"| 不安全输出拦截率 | {bm.unsafe_output_block_rate:.2%} | {pm.unsafe_output_block_rate:.2%} |")
-    lines.append(f"| Agent 成功率 | {bm.agent_success_rate:.2%} | {pm.agent_success_rate:.2%} |")
-    lines.append(f"| 精确风险匹配率 | {bm.exact_risk_match_rate:.2%} | {pm.exact_risk_match_rate:.2%} |")
+    lines.append(f"| 规则匹配召回率 | {_fmt_pct(bm.rule_match_recall)} | {_fmt_pct(pm.rule_match_recall)} |")
+    lines.append(f"| 高风险召回率 | {_fmt_pct(bm.high_risk_recall)} | {_fmt_pct(pm.high_risk_recall)} |")
+    lines.append(f"| 高风险假阴性率 | {_fmt_pct(bm.high_risk_false_negative_rate)} | {_fmt_pct(pm.high_risk_false_negative_rate)} |")
+    lines.append(f"| 人工审核召回率 | {_fmt_pct(bm.human_review_recall)} | {_fmt_pct(pm.human_review_recall)} |")
+    lines.append(f"| 模型下调拦截率 | {_fmt_pct(bm.model_downgrade_block_rate)} | {_fmt_pct(pm.model_downgrade_block_rate)} |")
+    lines.append(f"| 引用覆盖率 | {_fmt_pct(bm.citation_coverage_rate)} | {_fmt_pct(pm.citation_coverage_rate)} |")
+    lines.append(f"| 免责声明覆盖率 | {_fmt_pct(bm.disclaimer_coverage_rate)} | {_fmt_pct(pm.disclaimer_coverage_rate)} |")
+    lines.append(f"| 不安全输出拦截率 | {_fmt_pct(bm.unsafe_output_block_rate)} | {_fmt_pct(pm.unsafe_output_block_rate)} |")
+    lines.append(f"| Agent 成功率 | {_fmt_pct(bm.agent_success_rate)} | {_fmt_pct(pm.agent_success_rate)} |")
+    lines.append(f"| 精确风险匹配率 | {_fmt_pct(bm.exact_risk_match_rate)} | {_fmt_pct(pm.exact_risk_match_rate)} |")
     lines.append(f"| 错误用例数 | {bm.error_case_count} | {pm.error_case_count} |")
     lines.append(f"| 平均延迟(ms) | {bm.mean_latency_ms:.2f} | {pm.mean_latency_ms:.2f} |")
     lines.append(f"| P50延迟(ms) | {bm.p50_latency_ms:.2f} | {pm.p50_latency_ms:.2f} |")
@@ -168,9 +173,9 @@ def _write_report_md(
     lines.append("")
     lines.append("| 指标 | Baseline | Pipeline |")
     lines.append("|------|----------|----------|")
-    lines.append(f"| 提示词攻击拦截率 | N/A | {pm.prompt_injection_block_rate:.2%} |")
-    lines.append(f"| 越权指令拦截率 | N/A | {pm.privilege_escalation_block_rate:.2%} |")
-    lines.append(f"| 敏感信息检测率 | N/A | {pm.pii_detection_rate:.2%} |")
+    lines.append(f"| 提示词攻击拦截率 | N/A | {_fmt_pct(pm.prompt_injection_block_rate)} |")
+    lines.append(f"| 越权指令拦截率 | N/A | {_fmt_pct(pm.privilege_escalation_block_rate)} |")
+    lines.append(f"| 敏感信息检测率 | N/A | {_fmt_pct(pm.pii_detection_rate)} |")
     lines.append(f"| 敏感信息泄漏数量 | N/A | {pm.pii_leak_count} |")
     lines.append("")
     lines.append("> 注：安全指标基于规则的教学安全检测，不覆盖所有真实攻击场景。")

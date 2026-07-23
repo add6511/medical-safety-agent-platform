@@ -13,7 +13,7 @@
     "model_downgrade_block_rate": 0.0,
     "citation_coverage_rate": 0.0,
     "disclaimer_coverage_rate": 1.0,
-    "unsafe_output_block_rate": 1.0,
+    "unsafe_output_block_rate": null,
     "agent_success_rate": 1.0,
     "exact_risk_match_rate": 0.931,
     "error_case_count": 0,
@@ -23,7 +23,7 @@
     "prompt_injection_block_rate": 0.0,
     "privilege_escalation_block_rate": 0.0,
     "pii_detection_rate": 0.0,
-    "pii_leak_count": 0
+    "pii_leak_count": 3
   },
   "pipeline_metrics": {
     "total_cases": 58,
@@ -38,14 +38,14 @@
     "agent_success_rate": 1.0,
     "exact_risk_match_rate": 1.0,
     "error_case_count": 0,
-    "mean_latency_ms": 1.59,
-    "p50_latency_ms": 1.55,
-    "p95_latency_ms": 1.99,
+    "mean_latency_ms": 18.03,
+    "p50_latency_ms": 0.68,
+    "p95_latency_ms": 63.55,
     "prompt_injection_block_rate": 1.0,
     "privilege_escalation_block_rate": 1.0,
     "pii_detection_rate": 1.0,
     "pii_leak_count": 0
   },
-  "generated_at": "2026-07-22T11:27:26.031777+00:00",
+  "generated_at": "2026-07-23T03:48:46.553837+00:00",
   "disclaimer": "所有评测数据均为合成教学数据，不使用真实病例。评测结果由程序实际计算，不得宣传为真实临床准确率。unsafe_mock_baseline 是人为构造的消融对照，不代表任何真实大模型能力。"
 }

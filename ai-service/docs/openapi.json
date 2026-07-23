@@ -29,26 +29,6 @@
       }
     },
     "/api/v1/knowledge/documents": {
-      "get": {
-        "tags": [
-          "知识库"
-        ],
-        "summary": "查询文档列表",
-        "description": "返回已导入的文档列表，不包含文档正文。",
-        "operationId": "list_documents_api_v1_knowledge_documents_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocumentListResponse"
-                }
-              }
-            }
-          }
-        }
-      },
       "post": {
         "tags": [
           "知识库"
@@ -56,15 +36,33 @@
         "summary": "导入教学文档",
         "description": "导入教学用指南文本到知识库。内容必须为合成教学材料，不接受真实患者数据。相同校验值的文档重复导入时保持幂等，不重复创建数据。",
         "operationId": "import_document_api_v1_knowledge_documents_post",
+        "parameters": [
+          {
+            "name": "x-internal-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Api-Key"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DocumentImportRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -83,6 +81,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "知识库"
+        ],
+        "summary": "查询文档列表",
+        "description": "返回已导入的文档列表，不包含文档正文。",
+        "operationId": "list_documents_api_v1_knowledge_documents_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentListResponse"
                 }
               }
             }
@@ -148,6 +166,22 @@
             "schema": {
               "type": "string",
               "title": "Document Id"
+            }
+          },
+          {
+            "name": "x-internal-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Api-Key"
             }
           }
         ],
@@ -273,9 +307,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": true,
-                "type": "object",
-                "title": "Request"
+                "$ref": "#/components/schemas/SafetyCheckRequest"
               }
             }
           },
@@ -287,9 +319,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Check Safety Api V1 Safety Check Post"
+                  "$ref": "#/components/schemas/SafetyCheckResponse"
                 }
               }
             }
@@ -857,6 +887,113 @@
         ],
         "title": "PreconsultationResponse",
         "description": "预问诊审核响应"
+      },
+      "SafetyCheckRequest": {
+        "properties": {
+          "text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 10000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text",
+            "description": "待审核文本"
+          },
+          "candidate_text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 10000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Text",
+            "description": "待审核文本（兼容字段）"
+          },
+          "risk_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Level",
+            "description": "当前风险等级（用于检查风险是否被降低）"
+          },
+          "needs_human_review": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Needs Human Review",
+            "description": "当前是否标记需要人工审核"
+          }
+        },
+        "type": "object",
+        "title": "SafetyCheckRequest",
+        "description": "安全检查请求"
+      },
+      "SafetyCheckResponse": {
+        "properties": {
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id",
+            "description": "请求追踪ID（UUID4）"
+          },
+          "safety_status": {
+            "type": "string",
+            "title": "Safety Status",
+            "description": "安全状态：pass / blocked / human_review"
+          },
+          "safety_flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Safety Flags",
+            "description": "安全标记列表"
+          },
+          "sanitized_text": {
+            "type": "string",
+            "title": "Sanitized Text",
+            "description": "清理后的文本"
+          },
+          "needs_human_review": {
+            "type": "boolean",
+            "title": "Needs Human Review",
+            "description": "是否需要人工审核"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer",
+            "description": "免责声明"
+          }
+        },
+        "type": "object",
+        "required": [
+          "trace_id",
+          "safety_status",
+          "safety_flags",
+          "sanitized_text",
+          "needs_human_review",
+          "disclaimer"
+        ],
+        "title": "SafetyCheckResponse",
+        "description": "安全检查响应"
       },
       "SearchItem": {
         "properties": {

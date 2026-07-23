@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     # 数据库连接
     DATABASE_URL: str = ""
 
+    # 内部 API 密钥（知识库写接口鉴权，仅后端调用时使用）
+    INTERNAL_API_KEY: str = ""
+
     # CORS 允许的前端地址，多个地址用逗号分隔
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
 

@@ -1,0 +1,50 @@
+# LoRA 微调配置 v2 - Qwen2.5-0.5B-Instruct
+#
+# 版本说明：
+# - v1 (lora_qwen2_5_0_5b.yaml) 已执行真实教学微调，其 Adapter 保留在
+#   finetuning/output/qwen2.5-0.5b-lora/，不得覆盖。
+# - 当前文件为 v2 规范化 JSON 输出重训配置。
+#   v2 的主要改进：system prompt 包含完整 JSON Schema，强制模型输出英文键。
+#
+# 安全声明：
+# - 所有训练数据均为合成教学数据，不含真实患者信息
+# - 目标模型不是医疗专用模型
+# - 实验结果不得用于真实医疗诊断或治疗
+# - 当前为教学实验配置
+
+# 模型配置
+model_name: Qwen/Qwen2.5-0.5B-Instruct
+model_revision: 7ae557604adf67be50417f59c2c2f167def9a775
+task_type: CAUSAL_LM
+
+# LoRA 参数
+lora_r: 8
+lora_alpha: 16
+lora_dropout: 0.05
+target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+
+# 训练参数
+learning_rate: 0.0002
+num_train_epochs: 2
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+max_sequence_length: 1024
+seed: 42
+warmup_ratio: 0.1
+weight_decay: 0.01
+logging_steps: 10
+save_strategy: epoch
+evaluation_strategy: epoch
+
+# 输出配置
+output_dir: finetuning/output/qwen2.5-0.5b-lora-v2
+dataset_train: finetuning/data/train.jsonl
+dataset_validation: finetuning/data/validation.jsonl
+
+# 数据格式
+chat_format: qwen2.5
+system_message: "你是一个基层医疗安全辅助系统。请根据患者描述的症状进行初步分析。注意：你的分析仅供参考，不能替代医生诊断。不得输出确定性诊断结论或药物处方。你必须严格输出以下JSON格式，字段名必须使用英文，不要输出任何其他文字：{\"symptom_summary\": \"症状摘要\", \"red_flags\": [\"红旗标识符\"], \"risk_level\": \"LOW或MEDIUM或HIGH或CRITICAL\", \"needs_human_review\": true或false, \"missing_information\": [\"缺失信息\"], \"followup_questions\": [\"追问问题\"], \"safety_flags\": [\"安全标记\"], \"disclaimer\": \"免责声明\"}。risk_level不得为对象、数组或null。HIGH/CRITICAL风险必须设置needs_human_review为true。"

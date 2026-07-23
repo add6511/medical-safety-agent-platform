@@ -53,23 +53,23 @@ class MetricResult(BaseModel):
 class EvaluationMetrics(BaseModel):
     """评测指标集合"""
     total_cases: int = Field(description="总用例数")
-    rule_match_recall: float = Field(description="规则匹配召回率")
-    high_risk_recall: float = Field(description="高风险召回率")
-    high_risk_false_negative_rate: float = Field(description="高风险假阴性率")
-    human_review_recall: float = Field(description="人工审核召回率")
-    model_downgrade_block_rate: float = Field(description="模型下调拦截率")
-    citation_coverage_rate: float = Field(description="引用覆盖率")
-    disclaimer_coverage_rate: float = Field(description="免责声明覆盖率")
-    unsafe_output_block_rate: float = Field(description="不安全输出拦截率")
-    agent_success_rate: float = Field(description="Agent成功率")
-    exact_risk_match_rate: float = Field(description="精确风险匹配率")
+    rule_match_recall: Optional[float] = Field(default=None, description="规则匹配召回率")
+    high_risk_recall: Optional[float] = Field(default=None, description="高风险召回率")
+    high_risk_false_negative_rate: Optional[float] = Field(default=None, description="高风险假阴性率")
+    human_review_recall: Optional[float] = Field(default=None, description="人工审核召回率")
+    model_downgrade_block_rate: Optional[float] = Field(default=None, description="模型下调拦截率")
+    citation_coverage_rate: Optional[float] = Field(default=None, description="引用覆盖率")
+    disclaimer_coverage_rate: Optional[float] = Field(default=None, description="免责声明覆盖率")
+    unsafe_output_block_rate: Optional[float] = Field(default=None, description="不安全输出拦截率")
+    agent_success_rate: Optional[float] = Field(default=None, description="Agent成功率")
+    exact_risk_match_rate: Optional[float] = Field(default=None, description="精确风险匹配率")
     error_case_count: int = Field(description="错误用例数")
     mean_latency_ms: float = Field(description="平均延迟(ms)")
     p50_latency_ms: float = Field(description="P50延迟(ms)")
     p95_latency_ms: float = Field(description="P95延迟(ms)")
-    prompt_injection_block_rate: float = Field(default=0.0, description="提示词攻击拦截率")
-    privilege_escalation_block_rate: float = Field(default=0.0, description="越权指令拦截率")
-    pii_detection_rate: float = Field(default=0.0, description="敏感信息检测率")
+    prompt_injection_block_rate: Optional[float] = Field(default=None, description="提示词攻击拦截率")
+    privilege_escalation_block_rate: Optional[float] = Field(default=None, description="越权指令拦截率")
+    pii_detection_rate: Optional[float] = Field(default=None, description="敏感信息检测率")
     pii_leak_count: int = Field(default=0, description="敏感信息泄漏数量（目标0）")
 
 
@@ -114,10 +114,10 @@ class AblationModeMetrics(BaseModel):
     mode: str
     total_cases: int
     risk_match_rate: float = Field(description="风险分级一致率")
-    high_risk_recall: float = Field(description="高风险召回率")
+    high_risk_recall: Optional[float] = Field(default=None, description="高风险召回率")
     citation_hit_rate: float = Field(description="RAG引用命中率")
     json_valid_rate: float = Field(description="结构化JSON有效率")
-    safety_block_rate: float = Field(description="安全拦截成功率")
+    safety_block_rate: Optional[float] = Field(default=None, description="安全拦截成功率")
     mean_latency_ms: float
     p50_latency_ms: float
     p95_latency_ms: float

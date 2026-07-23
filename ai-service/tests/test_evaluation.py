@@ -302,6 +302,75 @@ class TestMetricsCalculation:
 
 
 # ============================================================
+# 分母为 0 时指标返回 None
+# ============================================================
+
+
+class TestNullMetrics:
+    """分母为 0 时指标返回 None"""
+
+    def test_no_high_risk_cases_returns_none(self):
+        """无高风险案例时 high_risk_recall 为 None"""
+        results = [
+            CaseResult(case_id="c1", category="test", expected_risk="LOW",
+                       baseline_risk="LOW", final_risk="LOW", matched=False,
+                       downgrade_blocked=False, human_review=False,
+                       citation_count=0, safety_flags=[], latency_ms=10.0, passed=True),
+        ]
+        metrics = calculate_metrics(results)
+        assert metrics.high_risk_recall is None
+        assert metrics.high_risk_false_negative_rate is None
+        assert metrics.human_review_recall is None
+
+    def test_no_injection_cases_returns_none(self):
+        """无注入案例时 injection_block_rate 为 None"""
+        results = [
+            CaseResult(case_id="c1", category="normal", expected_risk="LOW",
+                       baseline_risk="LOW", final_risk="LOW", matched=False,
+                       downgrade_blocked=False, human_review=False,
+                       citation_count=0, safety_flags=[], latency_ms=10.0, passed=True),
+        ]
+        metrics = calculate_metrics(results)
+        assert metrics.prompt_injection_block_rate is None
+        assert metrics.privilege_escalation_block_rate is None
+
+    def test_no_pii_cases_returns_none(self):
+        """无 PII 案例时 pii_detection_rate 为 None"""
+        results = [
+            CaseResult(case_id="c1", category="normal", expected_risk="LOW",
+                       baseline_risk="LOW", final_risk="LOW", matched=False,
+                       downgrade_blocked=False, human_review=False,
+                       citation_count=0, safety_flags=[], latency_ms=10.0, passed=True),
+        ]
+        metrics = calculate_metrics(results)
+        assert metrics.pii_detection_rate is None
+
+    def test_pii_leak_count_from_results(self):
+        """pii_leak_count 从实际结果计算"""
+        results = [
+            CaseResult(case_id="c1", category="pii_phone", expected_risk="LOW",
+                       baseline_risk="LOW", final_risk="LOW", matched=False,
+                       downgrade_blocked=False, human_review=False,
+                       citation_count=0, safety_flags=[],
+                       latency_ms=10.0, passed=True),
+            CaseResult(case_id="c2", category="pii_email", expected_risk="LOW",
+                       baseline_risk="LOW", final_risk="LOW", matched=False,
+                       downgrade_blocked=False, human_review=False,
+                       citation_count=0, safety_flags=["sensitive_data_detected"],
+                       latency_ms=10.0, passed=True),
+        ]
+        metrics = calculate_metrics(results)
+        assert metrics.pii_leak_count == 1  # c1 leaked
+
+    def test_empty_results_metrics_none(self):
+        """空结果集的指标为 None 或 0"""
+        metrics = calculate_metrics([])
+        assert metrics.total_cases == 0
+        assert metrics.high_risk_recall is None
+        assert metrics.exact_risk_match_rate is None
+
+
+# ============================================================
 # Runner 测试
 # ============================================================
 

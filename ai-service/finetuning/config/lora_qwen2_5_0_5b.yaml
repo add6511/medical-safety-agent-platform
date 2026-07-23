@@ -1,0 +1,44 @@
+# LoRA 微调配置 - Qwen2.5-0.5B-Instruct
+#
+# 安全声明：
+# - 目标模型不是医疗专用模型
+# - 实验结果不得用于真实医疗诊断
+# - 当前为教学实验配置，未执行真实训练
+# - 若未来实际训练，必须记录模型 revision/commit hash
+
+# 模型配置
+model_name: Qwen/Qwen2.5-0.5B-Instruct
+model_revision: main  # 实际训练时应固定为具体 commit hash
+task_type: CAUSAL_LM
+
+# LoRA 参数
+lora_r: 8
+lora_alpha: 16
+lora_dropout: 0.05
+target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+
+# 训练参数
+learning_rate: 0.0002
+num_train_epochs: 2
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+max_sequence_length: 1024
+seed: 42
+warmup_ratio: 0.1
+weight_decay: 0.01
+logging_steps: 10
+save_strategy: epoch
+evaluation_strategy: epoch
+
+# 输出配置
+output_dir: finetuning/output/qwen2.5-0.5b-lora
+dataset_train: finetuning/data/train.jsonl
+dataset_validation: finetuning/data/validation.jsonl
+
+# 数据格式
+chat_format: qwen2.5
+system_message: "你是一个基层医疗安全辅助系统。请根据患者描述的症状进行初步分析，输出结构化JSON格式的风险评估结果。注意：你的分析仅供参考，不能替代医生诊断。不得输出确定性诊断结论或药物处方。"

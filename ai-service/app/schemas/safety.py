@@ -6,18 +6,24 @@
 
 from typing import List, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.rules.models import RiskLevel
 
 
 class SafetyCheckRequest(BaseModel):
     """安全检查请求"""
-    text: str = Field(
-        ...,
+    text: Optional[str] = Field(
+        default=None,
         min_length=1,
         max_length=10000,
         description="待审核文本",
+    )
+    candidate_text: Optional[str] = Field(
+        default=None,
+        min_length=1,
+        max_length=10000,
+        description="待审核文本（兼容字段）",
     )
     risk_level: Optional[str] = Field(
         default=None,
@@ -27,6 +33,12 @@ class SafetyCheckRequest(BaseModel):
         default=None,
         description="当前是否标记需要人工审核",
     )
+
+    @model_validator(mode="after")
+    def ensure_text(self) -> "SafetyCheckRequest":
+        if not self.text and not self.candidate_text:
+            raise ValueError("text 或 candidate_text 至少提供一个")
+        return self
 
     @field_validator("risk_level")
     @classmethod

@@ -8,8 +8,9 @@
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 
+from app.core.config import settings
 from app.schemas.knowledge import (
     DocumentImportRequest,
     DocumentImportResponse,
@@ -41,6 +42,17 @@ def get_knowledge_service():
     return _knowledge_service
 
 
+def _verify_internal_api_key(x_internal_api_key: Optional[str]) -> None:
+    """校验内部 API 密钥（仅当配置了 INTERNAL_API_KEY 时才强制校验）"""
+    required_key = settings.INTERNAL_API_KEY
+    if not required_key:
+        return
+    if x_internal_api_key is None:
+        raise HTTPException(status_code=403, detail="缺少内部 API 密钥")
+    if x_internal_api_key != required_key:
+        raise HTTPException(status_code=401, detail="内部 API 密钥无效")
+
+
 @router.post(
     "/knowledge/documents",
     response_model=DocumentImportResponse,
@@ -51,8 +63,12 @@ def get_knowledge_service():
         "相同校验值的文档重复导入时保持幂等，不重复创建数据。"
     ),
 )
-async def import_document(request: DocumentImportRequest) -> DocumentImportResponse:
+def import_document(
+    request: DocumentImportRequest,
+    x_internal_api_key: Optional[str] = Header(None),
+) -> DocumentImportResponse:
     """导入文档到知识库"""
+    _verify_internal_api_key(x_internal_api_key)
     service = get_knowledge_service()
 
     result = service.import_document(
@@ -143,8 +159,12 @@ async def search_knowledge(request: SearchRequest) -> SearchResponse:
     summary="删除文档",
     description="删除指定文档及其关联的所有知识块。",
 )
-async def delete_document(document_id: str) -> dict:
+def delete_document(
+    document_id: str,
+    x_internal_api_key: Optional[str] = Header(None),
+) -> dict:
     """删除文档及其关联知识块"""
+    _verify_internal_api_key(x_internal_api_key)
     service = get_knowledge_service()
 
     deleted = service.delete_document(document_id)

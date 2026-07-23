@@ -1,0 +1,19 @@
+{
+  "experiment_name": "LoRA 微调 Qwen2.5-0.5B-Instruct 基层医疗安全辅助",
+  "phase": 9,
+  "status": "preparation_only",
+  "training_executed": false,
+  "model_downloaded": false,
+  "adapter_generated": false,
+  "model_name": "Qwen/Qwen2.5-0.5B-Instruct",
+  "model_license": "Apache-2.0",
+  "model_params": "~0.49B",
+  "data_source": "synthetic_cases_v1.json",
+  "synthetic_data": true,
+  "lora_config": "finetuning/config/lora_qwen2_5_0_5b.yaml",
+  "environment_report": "finetuning/reports/environment.json",
+  "dry_run_report": "finetuning/reports/dry_run_result.json",
+  "comparison_report": "finetuning/reports/finetune_comparison.json",
+  "created_at": "2026-07-22T00:00:00Z",
+  "disclaimer": "本实验为合成教学消融准备阶段。未执行真实训练。Qwen2.5-0.5B-Instruct 不是医疗专用模型，实验结果不得用于真实医疗诊断。"
+}

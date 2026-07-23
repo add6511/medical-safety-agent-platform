@@ -1,0 +1,12 @@
+{
+  "dataset_version": "finetune-synthetic-v1",
+  "source": "synthetic_cases_v1.json",
+  "synthetic_data": true,
+  "train_count": 40,
+  "validation_count": 11,
+  "seed": 42,
+  "train_ratio": 0.8,
+  "generated_at": "2026-07-23T01:37:06.274348+00:00",
+  "train_sha256": "f43c361d152605d8b141a08895f2592cc93acf0d315c8b4734e01ad7f1538910",
+  "validation_sha256": "bae3998df092fd4ce17fa7c9511ff4e2a73297a9def4207fd932b16ca22a33fe"
+}

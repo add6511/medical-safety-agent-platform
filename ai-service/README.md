@@ -148,6 +148,16 @@ python -m pytest -q
 python -m pytest -v
 ```
 
+当前测试套件：289 passed, 17 skipped。
+
+## CI 流水线
+
+项目配置了 GitHub Actions CI（`.github/workflows/ai-ci.yml`），在 `ai-service/` 目录有变更时自动运行：
+- 单元测试（`pytest -q`）
+- 编译检查（`compileall`）
+- OpenAPI 规范一致性验证
+- 微调相关测试在无 GPU 环境下自动 skip
+
 ## 运行评测
 
 ```powershell
@@ -213,6 +223,8 @@ python -m app.evaluation --dataset evaluation/datasets/synthetic_cases_v1.json -
 | MODEL_VERSION | mock-medical-agent-v1 | 模型版本标识 |
 | PROMPT_VERSION | preconsultation-v1 | Prompt 版本标识 |
 | ENABLE_MODEL_RISK_SUGGESTION | true | 是否启用模型风险建议 |
+| **安全相关** | | |
+| INTERNAL_API_KEY | | 内部 API 密钥，配置后知识库写操作需携带 `X-Internal-API-Key` 请求头 |
 
 ## RAG 处理流程
 
@@ -327,6 +339,36 @@ curl -X POST http://localhost:8000/api/v1/safety/check \
 - API 密钥只能从环境变量读取，禁止硬编码
 - HIGH/CRITICAL 风险由规则引擎确定，不允许模型下调
 - 所有评测结果不得宣传为真实临床准确率
+
+## 轻量 LoRA 微调实验
+
+第九阶段：准备使用 LoRA 对 Qwen2.5-0.5B-Instruct 进行微调的实验环境。
+
+**当前状态：已完成一次真实 LoRA 训练实验（Qwen2.5-0.5B-Instruct, RTX 5070 Laptop GPU）。**
+
+```powershell
+# 生成微调数据集
+python scripts/prepare_finetune_dataset.py
+
+# 验证数据集
+python scripts/validate_finetune_dataset.py
+
+# 检查环境
+python scripts/check_finetune_environment.py
+
+# dry-run（不下载模型，不训练）
+python scripts/train_lora.py --config finetuning/config/lora_qwen2_5_0_5b.yaml --dry-run
+
+# 评测（无微调结果时返回 N/A）
+python scripts/evaluate_finetune_outputs.py
+```
+
+真实训练前置条件：
+- NVIDIA GPU 显存 >= 4GB
+- `pip install -r requirements-finetune.txt`
+- 已完成一次训练实验。Adapter 权重不提交到版本控制。
+
+**声明：Qwen2.5-0.5B-Instruct 不是医疗专用模型，实验结果不得用于真实医疗诊断。详见 `finetuning/README.md`。**
 
 ## 目录结构
 

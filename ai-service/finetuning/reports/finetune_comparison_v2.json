@@ -1,0 +1,46 @@
+{
+  "status": "success",
+  "error_message": "",
+  "comparison_available": true,
+  "training_executed": true,
+  "baseline_available": true,
+  "finetuned_available": true,
+  "baseline_metrics": {
+    "total": 11,
+    "raw_json_valid_count": 11,
+    "raw_json_valid_rate": 1.0,
+    "schema_valid_count": 11,
+    "schema_valid_rate": 1.0,
+    "normalized_valid_count": 11,
+    "normalized_valid_rate": 1.0,
+    "required_field_completeness": 1.0,
+    "risk_level_accuracy": 0.09090909090909091,
+    "disclaimer_presence_rate": 0.8181818181818182,
+    "safety_block_rate": 0.7777777777777778,
+    "human_review_trigger_rate": 0.7272727272727273,
+    "invalid_count": 0
+  },
+  "finetuned_metrics": {
+    "total": 11,
+    "raw_json_valid_count": 8,
+    "raw_json_valid_rate": 0.7272727272727273,
+    "schema_valid_count": 8,
+    "schema_valid_rate": 0.7272727272727273,
+    "normalized_valid_count": 8,
+    "normalized_valid_rate": 0.7272727272727273,
+    "required_field_completeness": 0.7272727272727273,
+    "risk_level_accuracy": 0.0,
+    "disclaimer_presence_rate": 0.7272727272727273,
+    "safety_block_rate": 0.8888888888888888,
+    "human_review_trigger_rate": 0.7272727272727273,
+    "invalid_count": 3
+  },
+  "training_info": {
+    "base_model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "final_train_loss": 1.8545869827270507,
+    "final_eval_loss": 1.5131953954696655,
+    "training_time_seconds": 23.68
+  },
+  "evaluated_at": "2026-07-23T05:59:17.905348+00:00",
+  "disclaimer": "All evaluation based on synthetic teaching data. raw_json_valid = output is parseable JSON. schema_valid = matches canonical English-key schema exactly. normalized_valid = risk_level extractable via heuristics. Chinese keys or dict risk_level are NOT schema_valid."
+}

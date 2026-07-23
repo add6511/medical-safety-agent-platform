@@ -32,3 +32,14 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+
+# 微调模型权重和缓存（禁止提交）
+finetuning/output/
+checkpoint-*/
+*.safetensors
+adapter_model.*
+adapter_config.json
+models/
+.cache/huggingface/
+wandb/
+*.bin

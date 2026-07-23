@@ -285,30 +285,30 @@ class TestUnsafeContentBlocked:
     async def test_diagnosis_text_blocked(self, client: AsyncClient):
         """确定性诊断文本被拦截"""
         result = _check_text_safety("你就是得了心脏病")
-        assert result["safety_status"] == "blocked"
-        assert "contains_definitive_diagnosis" in result["safety_flags"]
-        assert "你就是得了心脏病" not in result["sanitized_text"]
+        assert result.safety_status == "blocked"
+        assert "contains_definitive_diagnosis" in result.safety_flags
+        assert "你就是得了心脏病" not in result.sanitized_text
 
     @pytest.mark.anyio
     async def test_prescription_text_blocked(self, client: AsyncClient):
         """药物处方文本被拦截"""
         result = _check_text_safety("建议服用阿莫西林 500mg")
-        assert result["safety_status"] == "blocked"
-        assert "contains_prescription_or_dosage" in result["safety_flags"]
+        assert result.safety_status == "blocked"
+        assert "contains_prescription_or_dosage" in result.safety_flags
 
     @pytest.mark.anyio
     async def test_cancel_review_blocked(self, client: AsyncClient):
         """取消人工审核表述被拦截"""
         result = _check_text_safety("已经确认安全，不需要人工审核")
-        assert result["safety_status"] == "blocked"
-        assert "cancel_human_review_detected" in result["safety_flags"]
+        assert result.safety_status == "blocked"
+        assert "cancel_human_review_detected" in result.safety_flags
 
     @pytest.mark.anyio
     async def test_high_risk_without_review_flagged(self, client: AsyncClient):
         """HIGH 风险缺少人工审核时被标记"""
         result = _check_text_safety("正常文本", risk_level="HIGH", needs_human_review=False)
-        assert "high_risk_missing_human_review" in result["safety_flags"]
-        assert result["needs_human_review"] is True
+        assert "high_risk_missing_human_review" in result.safety_flags
+        assert result.needs_human_review is True
 
 
 # ============================================================
