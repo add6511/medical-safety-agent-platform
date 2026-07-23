@@ -24,10 +24,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
+
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -112,7 +109,7 @@ class MySqlIntegrationTest {
     }
 
     @Test
-    void optimisticLockingFailureOnConcurrentPreConsultationUpdate() throws InterruptedException {
+    void optimisticLockingFailureOnConcurrentPreConsultationUpdate() {
         MedicalRecord record = medicalRecordRepository.save(MedicalRecord.builder()
                 .patientId(adminId).caseCode("TC-OPTLOCK-001")
                 .status(MedicalRecordStatus.ACTIVE).createdBy(adminId).build());
@@ -121,43 +118,24 @@ class MySqlIntegrationTest {
                 .status(PreConsultationStatus.INITIATED).build());
 
         Long pcId = pc.getId();
-        CountDownLatch latch = new CountDownLatch(2);
-        AtomicReference<Exception> exception1 = new AtomicReference<>();
-        AtomicReference<Exception> exception2 = new AtomicReference<>();
+        Long originalVersion = pc.getVersion();
 
-        ExecutorService executor = Executors.newFixedThreadPool(2);
+        PreConsultation pc1 = preConsultationRepository.findById(pcId).orElseThrow();
+        pc1.setStatus(PreConsultationStatus.SYMPTOM_COLLECTED);
+        preConsultationRepository.saveAndFlush(pc1);
 
-        executor.submit(() -> {
-            try {
-                PreConsultation pc1 = preConsultationRepository.findById(pcId).orElseThrow();
-                pc1.setStatus(PreConsultationStatus.SYMPTOM_COLLECTED);
-                preConsultationRepository.saveAndFlush(pc1);
-            } catch (Exception e) {
-                exception1.set(e);
-            } finally {
-                latch.countDown();
-            }
+        PreConsultation pc2 = PreConsultation.builder()
+                .id(pcId)
+                .recordId(record.getId())
+                .patientId(adminId)
+                .initiatedBy(adminId)
+                .status(PreConsultationStatus.CANCELLED)
+                .version(originalVersion)
+                .build();
+
+        assertThrows(ObjectOptimisticLockingFailureException.class, () -> {
+            preConsultationRepository.saveAndFlush(pc2);
         });
-
-        executor.submit(() -> {
-            try {
-                Thread.sleep(10);
-                PreConsultation pc2 = preConsultationRepository.findById(pcId).orElseThrow();
-                pc2.setStatus(PreConsultationStatus.CANCELLED);
-                preConsultationRepository.saveAndFlush(pc2);
-            } catch (Exception e) {
-                exception2.set(e);
-            } finally {
-                latch.countDown();
-            }
-        });
-
-        latch.await();
-        executor.shutdown();
-
-        boolean hasOptimisticLockFailure = (exception1.get() instanceof ObjectOptimisticLockingFailureException)
-                || (exception2.get() instanceof ObjectOptimisticLockingFailureException);
-        assertTrue(hasOptimisticLockFailure, "应该有乐观锁冲突异常");
     }
 
     @Test
