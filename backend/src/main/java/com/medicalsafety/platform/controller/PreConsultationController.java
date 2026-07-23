@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,27 +28,26 @@ public class PreConsultationController {
     @Operation(summary = "发起预问诊", description = "为就诊记录发起预问诊流程")
     public ResponseEntity<PreConsultationResponse> createPreConsultation(
             @Valid @RequestBody CreatePreConsultationRequest request) {
-        Long operatorId = getCurrentUserId();
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(preConsultationService.createPreConsultation(request, operatorId));
+                .body(preConsultationService.createPreConsultation(request, getCurrentUserId(), getCurrentRoles()));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "获取预问诊详情", description = "根据ID获取预问诊记录")
     public ResponseEntity<PreConsultationResponse> getPreConsultation(@PathVariable Long id) {
-        return ResponseEntity.ok(preConsultationService.getPreConsultation(id));
+        return ResponseEntity.ok(preConsultationService.getPreConsultation(id, getCurrentUserId(), getCurrentRoles()));
     }
 
     @GetMapping("/record/{recordId}")
     @Operation(summary = "按就诊记录查询", description = "获取就诊记录下的所有预问诊")
     public ResponseEntity<List<PreConsultationResponse>> getByRecord(@PathVariable Long recordId) {
-        return ResponseEntity.ok(preConsultationService.getPreConsultationsByRecord(recordId));
+        return ResponseEntity.ok(preConsultationService.getPreConsultationsByRecord(recordId, getCurrentUserId(), getCurrentRoles()));
     }
 
     @GetMapping("/patient/{patientId}")
     @Operation(summary = "按患者查询", description = "获取患者的所有预问诊记录")
     public ResponseEntity<List<PreConsultationResponse>> getByPatient(@PathVariable Long patientId) {
-        return ResponseEntity.ok(preConsultationService.getPreConsultationsByPatient(patientId));
+        return ResponseEntity.ok(preConsultationService.getPreConsultationsByPatient(patientId, getCurrentUserId(), getCurrentRoles()));
     }
 
     @GetMapping("/status/{status}")
@@ -62,7 +62,7 @@ public class PreConsultationController {
     public ResponseEntity<PreConsultationResponse> transitionStatus(
             @PathVariable Long id,
             @RequestParam PreConsultationStatus status) {
-        return ResponseEntity.ok(preConsultationService.transitionStatus(id, status, getCurrentUserId()));
+        return ResponseEntity.ok(preConsultationService.transitionStatus(id, status, getCurrentUserId(), getCurrentRoles()));
     }
 
     @PostMapping("/{id}/review")
@@ -71,16 +71,23 @@ public class PreConsultationController {
     public ResponseEntity<PreConsultationResponse> reviewPreConsultation(
             @PathVariable Long id,
             @Valid @RequestBody ReviewPreConsultationRequest request) {
-        return ResponseEntity.ok(preConsultationService.reviewPreConsultation(id, request, getCurrentUserId()));
+        return ResponseEntity.ok(preConsultationService.reviewPreConsultation(id, request, getCurrentUserId(), getCurrentRoles()));
     }
 
     @PutMapping("/{id}/cancel")
     @Operation(summary = "取消预问诊", description = "取消预问诊流程")
     public ResponseEntity<PreConsultationResponse> cancelPreConsultation(@PathVariable Long id) {
-        return ResponseEntity.ok(preConsultationService.cancelPreConsultation(id, getCurrentUserId()));
+        return ResponseEntity.ok(preConsultationService.cancelPreConsultation(id, getCurrentUserId(), getCurrentRoles()));
     }
 
     private Long getCurrentUserId() {
         return (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+
+    private List<String> getCurrentRoles() {
+        return SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .map(a -> a.startsWith("ROLE_") ? a.substring(5) : a)
+                .toList();
     }
 }

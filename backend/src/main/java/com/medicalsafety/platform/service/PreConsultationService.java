@@ -1,8 +1,11 @@
 package com.medicalsafety.platform.service;
 
 import com.medicalsafety.platform.dto.*;
+import com.medicalsafety.platform.entity.MedicalRecord;
 import com.medicalsafety.platform.entity.PreConsultation;
 import com.medicalsafety.platform.enums.PreConsultationStatus;
+import com.medicalsafety.platform.enums.RoleType;
+import com.medicalsafety.platform.exception.AccessDeniedException;
 import com.medicalsafety.platform.exception.BusinessException;
 import com.medicalsafety.platform.exception.ResourceNotFoundException;
 import com.medicalsafety.platform.repository.MedicalRecordRepository;
@@ -14,28 +17,33 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PreConsultationService {
 
+    private static final Set<String> STAFF_ROLES = Set.of(
+            RoleType.MEDICAL_STAFF.name(),
+            RoleType.ADMIN.name()
+    );
+
     private final PreConsultationRepository preConsultationRepository;
     private final MedicalRecordRepository medicalRecordRepository;
-    private AuditLogService auditLogService;
-
-    public void setAuditLogService(AuditLogService auditLogService) {
-        this.auditLogService = auditLogService;
-    }
+    private final AuditLogService auditLogService;
 
     @Transactional
-    public PreConsultationResponse createPreConsultation(CreatePreConsultationRequest request, Long operatorId) {
+    public PreConsultationResponse createPreConsultation(CreatePreConsultationRequest request, Long operatorId, List<String> roles) {
         if (!medicalRecordRepository.existsById(request.getRecordId())) {
             throw new ResourceNotFoundException("就诊记录不存在");
         }
 
-
         var record = medicalRecordRepository.findById(request.getRecordId()).orElseThrow();
+
+        if (!isStaff(roles) && !record.getPatientId().equals(operatorId)) {
+            throw new AccessDeniedException("患者只能为自己发起预问诊");
+        }
 
         PreConsultation pc = PreConsultation.builder()
                 .recordId(request.getRecordId())
@@ -45,24 +53,36 @@ public class PreConsultationService {
                 .build();
 
         pc = preConsultationRepository.save(pc);
-        logAudit(operatorId, "CREATE", "PRE_CONSULTATION", pc.getId(), "发起预问诊");
+        auditLogService.log(operatorId, null, "CREATE", "PRE_CONSULTATION", pc.getId(), "发起预问诊", null, null);
         return toResponse(pc);
     }
 
     @Transactional(readOnly = true)
-    public PreConsultationResponse getPreConsultation(Long id) {
-        return toResponse(findOrThrow(id));
+    public PreConsultationResponse getPreConsultation(Long id, Long operatorId, List<String> roles) {
+        PreConsultation pc = findOrThrow(id);
+        checkReadAccess(pc, operatorId, roles);
+        return toResponse(pc);
     }
 
     @Transactional(readOnly = true)
-    public List<PreConsultationResponse> getPreConsultationsByRecord(Long recordId) {
+    public List<PreConsultationResponse> getPreConsultationsByRecord(Long recordId, Long operatorId, List<String> roles) {
+        if (!medicalRecordRepository.existsById(recordId)) {
+            throw new ResourceNotFoundException("就诊记录不存在");
+        }
+        var record = medicalRecordRepository.findById(recordId).orElseThrow();
+        if (!isStaff(roles) && !record.getPatientId().equals(operatorId)) {
+            throw new AccessDeniedException("无权查看该就诊记录的预问诊");
+        }
         return preConsultationRepository.findByRecordId(recordId).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<PreConsultationResponse> getPreConsultationsByPatient(Long patientId) {
+    public List<PreConsultationResponse> getPreConsultationsByPatient(Long patientId, Long operatorId, List<String> roles) {
+        if (!isStaff(roles) && !patientId.equals(operatorId)) {
+            throw new AccessDeniedException("患者只能查看自己的预问诊");
+        }
         return preConsultationRepository.findByPatientId(patientId).stream()
                 .map(this::toResponse)
                 .toList();
@@ -76,31 +96,38 @@ public class PreConsultationService {
     }
 
     @Transactional
-    public PreConsultationResponse transitionStatus(Long id, PreConsultationStatus targetStatus, Long operatorId) {
+    public PreConsultationResponse transitionStatus(Long id, PreConsultationStatus targetStatus, Long operatorId, List<String> roles) {
         PreConsultation pc = findOrThrow(id);
-        PreConsultationStatus currentStatus = pc.getStatus();
+        checkOwnerOrStaff(pc, operatorId, roles, "修改状态");
 
+        if (!isStaff(roles) && targetStatus != PreConsultationStatus.CANCELLED) {
+            throw new AccessDeniedException("患者只能取消预问诊，不能修改状态");
+        }
+
+        PreConsultationStatus currentStatus = pc.getStatus();
         if (!currentStatus.canTransitionTo(targetStatus)) {
             throw new BusinessException("INVALID_STATE_TRANSITION",
                     String.format("不允许从 %s 转换到 %s", currentStatus, targetStatus));
         }
 
         pc.setStatus(targetStatus);
-
         if (targetStatus == PreConsultationStatus.COMPLETED) {
             pc.setCompletedAt(LocalDateTime.now());
         }
 
         pc = preConsultationRepository.save(pc);
-        logAudit(operatorId, "STATUS_CHANGE", "PRE_CONSULTATION", pc.getId(),
-                String.format("状态变更: %s -> %s", currentStatus, targetStatus));
+        auditLogService.log(operatorId, null, "STATUS_CHANGE", "PRE_CONSULTATION", pc.getId(),
+                String.format("状态变更: %s -> %s", currentStatus, targetStatus), null, null);
         return toResponse(pc);
     }
 
     @Transactional
-    public PreConsultationResponse reviewPreConsultation(Long id, ReviewPreConsultationRequest request, Long reviewerId) {
-        PreConsultation pc = findOrThrow(id);
+    public PreConsultationResponse reviewPreConsultation(Long id, ReviewPreConsultationRequest request, Long reviewerId, List<String> roles) {
+        if (!isStaff(roles)) {
+            throw new AccessDeniedException("只有医务人员可以审核预问诊");
+        }
 
+        PreConsultation pc = findOrThrow(id);
         if (pc.getStatus() != PreConsultationStatus.AI_TRIAGE_COMPLETED) {
             throw new BusinessException("INVALID_REVIEW_STATE",
                     "只有AI分诊完成的预问诊才能审核，当前状态: " + pc.getStatus());
@@ -115,14 +142,36 @@ public class PreConsultationService {
         }
 
         pc = preConsultationRepository.save(pc);
-        logAudit(reviewerId, "REVIEW", "PRE_CONSULTATION", pc.getId(),
-                "审核预问诊: " + (Boolean.TRUE.equals(request.getApproved()) ? "通过" : "记录意见"));
+        auditLogService.log(reviewerId, null, "REVIEW", "PRE_CONSULTATION", pc.getId(),
+                "审核预问诊: " + (Boolean.TRUE.equals(request.getApproved()) ? "通过" : "记录意见"), null, null);
         return toResponse(pc);
     }
 
     @Transactional
-    public PreConsultationResponse cancelPreConsultation(Long id, Long operatorId) {
-        return transitionStatus(id, PreConsultationStatus.CANCELLED, operatorId);
+    public PreConsultationResponse cancelPreConsultation(Long id, Long operatorId, List<String> roles) {
+        return transitionStatus(id, PreConsultationStatus.CANCELLED, operatorId, roles);
+    }
+
+    private void checkReadAccess(PreConsultation pc, Long operatorId, List<String> roles) {
+        if (isStaff(roles)) {
+            return;
+        }
+        if (!pc.getPatientId().equals(operatorId)) {
+            throw new AccessDeniedException("无权访问该预问诊");
+        }
+    }
+
+    private void checkOwnerOrStaff(PreConsultation pc, Long operatorId, List<String> roles, String action) {
+        if (isStaff(roles)) {
+            return;
+        }
+        if (!pc.getPatientId().equals(operatorId)) {
+            throw new AccessDeniedException("无权" + action + "该预问诊");
+        }
+    }
+
+    private boolean isStaff(List<String> roles) {
+        return roles.stream().anyMatch(STAFF_ROLES::contains);
     }
 
     private PreConsultation findOrThrow(Long id) {
@@ -144,11 +193,5 @@ public class PreConsultationService {
                 .createdAt(pc.getCreatedAt())
                 .updatedAt(pc.getUpdatedAt())
                 .build();
-    }
-
-    private void logAudit(Long userId, String action, String resourceType, Long resourceId, String detail) {
-        if (auditLogService != null) {
-            auditLogService.log(userId, null, action, resourceType, resourceId, detail, null, null);
-        }
     }
 }

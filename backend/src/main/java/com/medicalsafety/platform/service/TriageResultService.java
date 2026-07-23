@@ -4,7 +4,9 @@ import com.medicalsafety.platform.dto.*;
 import com.medicalsafety.platform.entity.AgentExecutionLog;
 import com.medicalsafety.platform.entity.TriageResult;
 import com.medicalsafety.platform.enums.AgentExecutionStatus;
+import com.medicalsafety.platform.enums.RoleType;
 import com.medicalsafety.platform.enums.UrgencyLevel;
+import com.medicalsafety.platform.exception.AccessDeniedException;
 import com.medicalsafety.platform.exception.BusinessException;
 import com.medicalsafety.platform.exception.ResourceNotFoundException;
 import com.medicalsafety.platform.repository.AgentExecutionLogRepository;
@@ -17,23 +19,29 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class TriageResultService {
 
+    private static final Set<String> STAFF_ROLES = Set.of(
+            RoleType.MEDICAL_STAFF.name(),
+            RoleType.ADMIN.name()
+    );
+
     private final TriageResultRepository triageResultRepository;
     private final PreConsultationRepository preConsultationRepository;
     private final AgentExecutionLogRepository agentExecutionLogRepository;
-    private AuditLogService auditLogService;
-
-    public void setAuditLogService(AuditLogService auditLogService) {
-        this.auditLogService = auditLogService;
-    }
+    private final AuditLogService auditLogService;
 
     @Transactional
-    public TriageResultResponse createTriageResult(CreateTriageResultRequest request, Long operatorId) {
+    public TriageResultResponse createTriageResult(CreateTriageResultRequest request, Long operatorId, List<String> roles) {
+        if (!isStaff(roles)) {
+            throw new AccessDeniedException("只有医务人员可以创建分诊结果");
+        }
+
         if (!preConsultationRepository.existsById(request.getPreConsultationId())) {
             throw new ResourceNotFoundException("预问诊记录不存在");
         }
@@ -50,19 +58,29 @@ public class TriageResultService {
                 .build();
 
         result = triageResultRepository.save(result);
-        logAudit(operatorId, "CREATE", "TRIAGE_RESULT", result.getId(), "创建分诊结果");
+        auditLogService.log(operatorId, null, "CREATE", "TRIAGE_RESULT", result.getId(), "创建分诊结果", null, null);
         return toResponse(result);
     }
 
     @Transactional(readOnly = true)
-    public TriageResultResponse getTriageResultByPreConsultation(Long preConsultationId) {
+    public TriageResultResponse getTriageResultByPreConsultation(Long preConsultationId, Long operatorId, List<String> roles) {
         TriageResult result = triageResultRepository.findByPreConsultationId(preConsultationId)
                 .orElseThrow(() -> new ResourceNotFoundException("分诊结果不存在"));
+        if (!isStaff(roles)) {
+            var pc = preConsultationRepository.findById(preConsultationId).orElseThrow();
+            if (!pc.getPatientId().equals(operatorId)) {
+                throw new AccessDeniedException("无权访问该分诊结果");
+            }
+        }
         return toResponse(result);
     }
 
     @Transactional
-    public AgentExecutionLogResponse createAgentExecutionLog(CreateAgentExecutionLogRequest request, Long operatorId) {
+    public AgentExecutionLogResponse createAgentExecutionLog(CreateAgentExecutionLogRequest request, Long operatorId, List<String> roles) {
+        if (!isStaff(roles)) {
+            throw new AccessDeniedException("只有医务人员可以创建Agent执行记录");
+        }
+
         if (!preConsultationRepository.existsById(request.getPreConsultationId())) {
             throw new ResourceNotFoundException("预问诊记录不存在");
         }
@@ -84,16 +102,26 @@ public class TriageResultService {
         }
 
         logEntry = agentExecutionLogRepository.save(logEntry);
-        logAudit(operatorId, "CREATE", "AGENT_EXECUTION_LOG", logEntry.getId(),
-                "Agent执行记录: " + logEntry.getAgentType());
+        auditLogService.log(operatorId, null, "CREATE", "AGENT_EXECUTION_LOG", logEntry.getId(),
+                "Agent执行记录: " + logEntry.getAgentType(), null, null);
         return toLogResponse(logEntry);
     }
 
     @Transactional(readOnly = true)
-    public List<AgentExecutionLogResponse> getAgentExecutionLogs(Long preConsultationId) {
+    public List<AgentExecutionLogResponse> getAgentExecutionLogs(Long preConsultationId, Long operatorId, List<String> roles) {
+        if (!isStaff(roles)) {
+            var pc = preConsultationRepository.findById(preConsultationId).orElseThrow();
+            if (!pc.getPatientId().equals(operatorId)) {
+                throw new AccessDeniedException("无权访问该Agent执行记录");
+            }
+        }
         return agentExecutionLogRepository.findByPreConsultationId(preConsultationId).stream()
                 .map(this::toLogResponse)
                 .toList();
+    }
+
+    private boolean isStaff(List<String> roles) {
+        return roles.stream().anyMatch(STAFF_ROLES::contains);
     }
 
     private UrgencyLevel parseUrgencyLevel(String urgencyLevel) {
@@ -144,11 +172,5 @@ public class TriageResultService {
                 .completedAt(logEntry.getCompletedAt())
                 .durationMs(logEntry.getDurationMs())
                 .build();
-    }
-
-    private void logAudit(Long userId, String action, String resourceType, Long resourceId, String detail) {
-        if (auditLogService != null) {
-            auditLogService.log(userId, null, action, resourceType, resourceId, detail, null, null);
-        }
     }
 }

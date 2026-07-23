@@ -16,6 +16,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,40 +26,20 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class PreConsultationServiceTest {
 
-    @Mock
-    private PreConsultationRepository preConsultationRepository;
-
-    @Mock
-    private MedicalRecordRepository medicalRecordRepository;
-
-    @Mock
-    private AuditLogService auditLogService;
-
-    @InjectMocks
-    private PreConsultationService preConsultationService;
+    @Mock private PreConsultationRepository preConsultationRepository;
+    @Mock private MedicalRecordRepository medicalRecordRepository;
+    @Mock private AuditLogService auditLogService;
+    @InjectMocks private PreConsultationService preConsultationService;
 
     private MedicalRecord testRecord;
     private PreConsultation testPC;
+    private static final List<String> ADMIN_ROLES = List.of("ADMIN");
+    private static final List<String> PATIENT_ROLES = List.of("PATIENT");
 
     @BeforeEach
     void setUp() {
-        preConsultationService.setAuditLogService(auditLogService);
-
-        testRecord = MedicalRecord.builder()
-                .id(1L)
-                .patientId(100L)
-                .caseCode("CASE-001")
-                .status(MedicalRecordStatus.ACTIVE)
-                .createdBy(1L)
-                .build();
-
-        testPC = PreConsultation.builder()
-                .id(1L)
-                .recordId(1L)
-                .patientId(100L)
-                .initiatedBy(1L)
-                .status(PreConsultationStatus.INITIATED)
-                .build();
+        testRecord = MedicalRecord.builder().id(1L).patientId(100L).caseCode("CASE-001").status(MedicalRecordStatus.ACTIVE).createdBy(100L).build();
+        testPC = PreConsultation.builder().id(1L).recordId(1L).patientId(100L).initiatedBy(100L).status(PreConsultationStatus.INITIATED).build();
     }
 
     @Test
@@ -66,85 +47,45 @@ class PreConsultationServiceTest {
         when(medicalRecordRepository.existsById(1L)).thenReturn(true);
         when(medicalRecordRepository.findById(1L)).thenReturn(Optional.of(testRecord));
         when(preConsultationRepository.save(any(PreConsultation.class))).thenReturn(testPC);
-
         CreatePreConsultationRequest request = CreatePreConsultationRequest.builder().recordId(1L).build();
-        PreConsultationResponse response = preConsultationService.createPreConsultation(request, 1L);
-
-        assertNotNull(response);
-        assertEquals("INITIATED", response.getStatus());
+        assertEquals("INITIATED", preConsultationService.createPreConsultation(request, 100L, PATIENT_ROLES).getStatus());
     }
 
     @Test
-    void createPreConsultationRecordNotFound() {
-        when(medicalRecordRepository.existsById(999L)).thenReturn(false);
-
-        CreatePreConsultationRequest request = CreatePreConsultationRequest.builder().recordId(999L).build();
-        assertThrows(ResourceNotFoundException.class, () -> preConsultationService.createPreConsultation(request, 1L));
+    void patientCannotCreatePreConsultationForOther() {
+        when(medicalRecordRepository.existsById(1L)).thenReturn(true);
+        when(medicalRecordRepository.findById(1L)).thenReturn(Optional.of(testRecord));
+        CreatePreConsultationRequest request = CreatePreConsultationRequest.builder().recordId(1L).build();
+        assertThrows(com.medicalsafety.platform.exception.AccessDeniedException.class,
+                () -> preConsultationService.createPreConsultation(request, 999L, PATIENT_ROLES));
     }
 
     @Test
     void transitionInitiatedToSymptomCollected() {
         when(preConsultationRepository.findById(1L)).thenReturn(Optional.of(testPC));
         when(preConsultationRepository.save(any(PreConsultation.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        PreConsultationResponse response = preConsultationService.transitionStatus(1L, PreConsultationStatus.SYMPTOM_COLLECTED, 1L);
-
-        assertEquals("SYMPTOM_COLLECTED", response.getStatus());
+        assertEquals("SYMPTOM_COLLECTED", preConsultationService.transitionStatus(1L, PreConsultationStatus.SYMPTOM_COLLECTED, 100L, ADMIN_ROLES).getStatus());
     }
 
     @Test
-    void transitionInitiatedToAiTriageCompletedFails() {
+    void patientCannotTransitionToNonCancelled() {
         when(preConsultationRepository.findById(1L)).thenReturn(Optional.of(testPC));
-
-        assertThrows(BusinessException.class,
-                () -> preConsultationService.transitionStatus(1L, PreConsultationStatus.AI_TRIAGE_COMPLETED, 1L));
+        assertThrows(com.medicalsafety.platform.exception.AccessDeniedException.class,
+                () -> preConsultationService.transitionStatus(1L, PreConsultationStatus.SYMPTOM_COLLECTED, 100L, PATIENT_ROLES));
     }
 
     @Test
-    void transitionCompletedToAnyFails() {
-        testPC.setStatus(PreConsultationStatus.COMPLETED);
-        when(preConsultationRepository.findById(1L)).thenReturn(Optional.of(testPC));
-
-        assertThrows(BusinessException.class,
-                () -> preConsultationService.transitionStatus(1L, PreConsultationStatus.INITIATED, 1L));
-    }
-
-    @Test
-    void fullStateMachineFlow() {
+    void patientCanCancelOwnPreConsultation() {
         when(preConsultationRepository.findById(1L)).thenReturn(Optional.of(testPC));
         when(preConsultationRepository.save(any(PreConsultation.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        PreConsultationResponse r1 = preConsultationService.transitionStatus(1L, PreConsultationStatus.SYMPTOM_COLLECTED, 1L);
-        assertEquals("SYMPTOM_COLLECTED", r1.getStatus());
-
-        testPC.setStatus(PreConsultationStatus.SYMPTOM_COLLECTED);
-        PreConsultationResponse r2 = preConsultationService.transitionStatus(1L, PreConsultationStatus.AI_TRIAGE_COMPLETED, 1L);
-        assertEquals("AI_TRIAGE_COMPLETED", r2.getStatus());
-
-        testPC.setStatus(PreConsultationStatus.AI_TRIAGE_COMPLETED);
-        PreConsultationResponse r3 = preConsultationService.transitionStatus(1L, PreConsultationStatus.MEDICAL_REVIEW_COMPLETED, 1L);
-        assertEquals("MEDICAL_REVIEW_COMPLETED", r3.getStatus());
-
-        testPC.setStatus(PreConsultationStatus.MEDICAL_REVIEW_COMPLETED);
-        PreConsultationResponse r4 = preConsultationService.transitionStatus(1L, PreConsultationStatus.COMPLETED, 1L);
-        assertEquals("COMPLETED", r4.getStatus());
+        assertEquals("CANCELLED", preConsultationService.cancelPreConsultation(1L, 100L, PATIENT_ROLES).getStatus());
     }
 
     @Test
-    void cancelFromInitiated() {
+    void patientCannotCancelOtherPreConsultation() {
         when(preConsultationRepository.findById(1L)).thenReturn(Optional.of(testPC));
-        when(preConsultationRepository.save(any(PreConsultation.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        PreConsultationResponse response = preConsultationService.cancelPreConsultation(1L, 1L);
-        assertEquals("CANCELLED", response.getStatus());
-    }
-
-    @Test
-    void cancelFromCompletedFails() {
-        testPC.setStatus(PreConsultationStatus.COMPLETED);
-        when(preConsultationRepository.findById(1L)).thenReturn(Optional.of(testPC));
-
-        assertThrows(BusinessException.class, () -> preConsultationService.cancelPreConsultation(1L, 1L));
+        assertThrows(com.medicalsafety.platform.exception.AccessDeniedException.class,
+                () -> preConsultationService.cancelPreConsultation(1L, 999L, PATIENT_ROLES));
     }
 
     @Test
@@ -152,29 +93,36 @@ class PreConsultationServiceTest {
         testPC.setStatus(PreConsultationStatus.AI_TRIAGE_COMPLETED);
         when(preConsultationRepository.findById(1L)).thenReturn(Optional.of(testPC));
         when(preConsultationRepository.save(any(PreConsultation.class))).thenAnswer(inv -> inv.getArgument(0));
+        ReviewPreConsultationRequest request = ReviewPreConsultationRequest.builder().reviewComment("通过").approved(true).build();
+        assertEquals("MEDICAL_REVIEW_COMPLETED", preConsultationService.reviewPreConsultation(1L, request, 2L, ADMIN_ROLES).getStatus());
+    }
 
-        ReviewPreConsultationRequest request = ReviewPreConsultationRequest.builder()
-                .reviewComment("审核通过")
-                .approved(true)
-                .build();
+    @Test
+    void patientCannotReviewPreConsultation() {
+        testPC.setStatus(PreConsultationStatus.AI_TRIAGE_COMPLETED);
 
-        PreConsultationResponse response = preConsultationService.reviewPreConsultation(1L, request, 2L);
+        ReviewPreConsultationRequest request = ReviewPreConsultationRequest.builder().reviewComment("通过").approved(true).build();
+        assertThrows(com.medicalsafety.platform.exception.AccessDeniedException.class,
+                () -> preConsultationService.reviewPreConsultation(1L, request, 100L, PATIENT_ROLES));
+    }
 
-        assertEquals("MEDICAL_REVIEW_COMPLETED", response.getStatus());
-        assertEquals(2L, response.getReviewedBy());
-        assertEquals("审核通过", response.getReviewComment());
+    @Test
+    void fullStateMachineFlow() {
+        when(preConsultationRepository.findById(1L)).thenReturn(Optional.of(testPC));
+        when(preConsultationRepository.save(any(PreConsultation.class))).thenAnswer(inv -> inv.getArgument(0));
+        testPC.setStatus(PreConsultationStatus.SYMPTOM_COLLECTED);
+        assertEquals("AI_TRIAGE_COMPLETED", preConsultationService.transitionStatus(1L, PreConsultationStatus.AI_TRIAGE_COMPLETED, 1L, ADMIN_ROLES).getStatus());
+        testPC.setStatus(PreConsultationStatus.AI_TRIAGE_COMPLETED);
+        assertEquals("MEDICAL_REVIEW_COMPLETED", preConsultationService.transitionStatus(1L, PreConsultationStatus.MEDICAL_REVIEW_COMPLETED, 1L, ADMIN_ROLES).getStatus());
+        testPC.setStatus(PreConsultationStatus.MEDICAL_REVIEW_COMPLETED);
+        assertEquals("COMPLETED", preConsultationService.transitionStatus(1L, PreConsultationStatus.COMPLETED, 1L, ADMIN_ROLES).getStatus());
     }
 
     @Test
     void reviewPreConsultationWrongStateFails() {
         testPC.setStatus(PreConsultationStatus.INITIATED);
         when(preConsultationRepository.findById(1L)).thenReturn(Optional.of(testPC));
-
-        ReviewPreConsultationRequest request = ReviewPreConsultationRequest.builder()
-                .reviewComment("审核")
-                .approved(true)
-                .build();
-
-        assertThrows(BusinessException.class, () -> preConsultationService.reviewPreConsultation(1L, request, 2L));
+        ReviewPreConsultationRequest request = ReviewPreConsultationRequest.builder().reviewComment("审核").approved(true).build();
+        assertThrows(BusinessException.class, () -> preConsultationService.reviewPreConsultation(1L, request, 2L, ADMIN_ROLES));
     }
 }

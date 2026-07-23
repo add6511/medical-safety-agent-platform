@@ -4,7 +4,9 @@ import com.medicalsafety.platform.dto.*;
 import com.medicalsafety.platform.entity.MedicalRecord;
 import com.medicalsafety.platform.entity.Symptom;
 import com.medicalsafety.platform.enums.MedicalRecordStatus;
+import com.medicalsafety.platform.enums.RoleType;
 import com.medicalsafety.platform.enums.SymptomSeverity;
+import com.medicalsafety.platform.exception.AccessDeniedException;
 import com.medicalsafety.platform.exception.BusinessException;
 import com.medicalsafety.platform.exception.ResourceNotFoundException;
 import com.medicalsafety.platform.repository.MedicalRecordRepository;
@@ -15,22 +17,28 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class MedicalRecordService {
 
+    private static final Set<String> STAFF_ROLES = Set.of(
+            RoleType.MEDICAL_STAFF.name(),
+            RoleType.ADMIN.name()
+    );
+
     private final MedicalRecordRepository medicalRecordRepository;
     private final SymptomRepository symptomRepository;
-    private AuditLogService auditLogService;
-
-    public void setAuditLogService(AuditLogService auditLogService) {
-        this.auditLogService = auditLogService;
-    }
+    private final AuditLogService auditLogService;
 
     @Transactional
-    public MedicalRecordResponse createRecord(CreateMedicalRecordRequest request, Long operatorId) {
+    public MedicalRecordResponse createRecord(CreateMedicalRecordRequest request, Long operatorId, List<String> roles) {
+        if (!isStaff(roles) && !request.getPatientId().equals(operatorId)) {
+            throw new AccessDeniedException("患者只能创建自己的就诊记录");
+        }
+
         if (medicalRecordRepository.existsByCaseCode(request.getCaseCode())) {
             throw new BusinessException("CASE_CODE_DUPLICATE", "病例编码已存在: " + request.getCaseCode());
         }
@@ -46,43 +54,52 @@ public class MedicalRecordService {
                 .build();
 
         record = medicalRecordRepository.save(record);
-        logAudit(operatorId, "CREATE", "MEDICAL_RECORD", record.getId(), "创建就诊记录: " + record.getCaseCode());
+        auditLogService.log(operatorId, null, "CREATE", "MEDICAL_RECORD", record.getId(),
+                "创建就诊记录: " + record.getCaseCode(), null, null);
 
         return toRecordResponse(record);
     }
 
     @Transactional(readOnly = true)
-    public MedicalRecordResponse getRecord(Long id) {
+    public MedicalRecordResponse getRecord(Long id, Long operatorId, List<String> roles) {
         MedicalRecord record = findRecordOrThrow(id);
+        checkReadAccess(record, operatorId, roles);
         return toRecordResponse(record);
     }
 
     @Transactional(readOnly = true)
-    public MedicalRecordResponse getRecordByCaseCode(String caseCode) {
+    public MedicalRecordResponse getRecordByCaseCode(String caseCode, Long operatorId, List<String> roles) {
         MedicalRecord record = medicalRecordRepository.findByCaseCode(caseCode)
                 .orElseThrow(() -> new ResourceNotFoundException("就诊记录不存在: " + caseCode));
+        checkReadAccess(record, operatorId, roles);
         return toRecordResponse(record);
     }
 
     @Transactional(readOnly = true)
-    public List<MedicalRecordResponse> getRecordsByPatient(Long patientId) {
+    public List<MedicalRecordResponse> getRecordsByPatient(Long patientId, Long operatorId, List<String> roles) {
+        if (!isStaff(roles) && !patientId.equals(operatorId)) {
+            throw new AccessDeniedException("患者只能查看自己的就诊记录");
+        }
         return medicalRecordRepository.findByPatientId(patientId).stream()
                 .map(this::toRecordResponse)
                 .toList();
     }
 
     @Transactional
-    public MedicalRecordResponse archiveRecord(Long id, Long operatorId) {
+    public MedicalRecordResponse archiveRecord(Long id, Long operatorId, List<String> roles) {
         MedicalRecord record = findRecordOrThrow(id);
+        checkOwnerOrStaff(record, operatorId, roles, "归档");
         record.setStatus(MedicalRecordStatus.ARCHIVED);
         record = medicalRecordRepository.save(record);
-        logAudit(operatorId, "ARCHIVE", "MEDICAL_RECORD", record.getId(), "归档就诊记录: " + record.getCaseCode());
+        auditLogService.log(operatorId, null, "ARCHIVE", "MEDICAL_RECORD", record.getId(),
+                "归档就诊记录: " + record.getCaseCode(), null, null);
         return toRecordResponse(record);
     }
 
     @Transactional
-    public SymptomResponse addSymptom(CreateSymptomRequest request, Long operatorId) {
-        findRecordOrThrow(request.getRecordId());
+    public SymptomResponse addSymptom(CreateSymptomRequest request, Long operatorId, List<String> roles) {
+        MedicalRecord record = findRecordOrThrow(request.getRecordId());
+        checkOwnerOrStaff(record, operatorId, roles, "添加症状");
 
         Symptom symptom = Symptom.builder()
                 .recordId(request.getRecordId())
@@ -95,23 +112,51 @@ public class MedicalRecordService {
                 .build();
 
         symptom = symptomRepository.save(symptom);
-        logAudit(operatorId, "CREATE", "SYMPTOM", symptom.getId(), "添加症状: " + symptom.getSymptomName());
+        auditLogService.log(operatorId, null, "CREATE", "SYMPTOM", symptom.getId(),
+                "添加症状: " + symptom.getSymptomName(), null, null);
         return toSymptomResponse(symptom);
     }
 
     @Transactional(readOnly = true)
-    public List<SymptomResponse> getSymptomsByRecord(Long recordId) {
+    public List<SymptomResponse> getSymptomsByRecord(Long recordId, Long operatorId, List<String> roles) {
+        MedicalRecord record = findRecordOrThrow(recordId);
+        checkReadAccess(record, operatorId, roles);
         return symptomRepository.findByRecordId(recordId).stream()
                 .map(this::toSymptomResponse)
                 .toList();
     }
 
     @Transactional
-    public void deleteSymptom(Long symptomId, Long operatorId) {
+    public void deleteSymptom(Long symptomId, Long operatorId, List<String> roles) {
         Symptom symptom = symptomRepository.findById(symptomId)
                 .orElseThrow(() -> new ResourceNotFoundException("症状记录不存在"));
+        MedicalRecord record = findRecordOrThrow(symptom.getRecordId());
+        checkOwnerOrStaff(record, operatorId, roles, "删除症状");
         symptomRepository.delete(symptom);
-        logAudit(operatorId, "DELETE", "SYMPTOM", symptomId, "删除症状: " + symptom.getSymptomName());
+        auditLogService.log(operatorId, null, "DELETE", "SYMPTOM", symptomId,
+                "删除症状: " + symptom.getSymptomName(), null, null);
+    }
+
+    private void checkReadAccess(MedicalRecord record, Long operatorId, List<String> roles) {
+        if (isStaff(roles)) {
+            return;
+        }
+        if (!record.getPatientId().equals(operatorId)) {
+            throw new AccessDeniedException("无权访问该就诊记录");
+        }
+    }
+
+    private void checkOwnerOrStaff(MedicalRecord record, Long operatorId, List<String> roles, String action) {
+        if (isStaff(roles)) {
+            return;
+        }
+        if (!record.getPatientId().equals(operatorId)) {
+            throw new AccessDeniedException("无权" + action + "该就诊记录");
+        }
+    }
+
+    private boolean isStaff(List<String> roles) {
+        return roles.stream().anyMatch(STAFF_ROLES::contains);
     }
 
     private MedicalRecord findRecordOrThrow(Long id) {
@@ -164,11 +209,5 @@ public class MedicalRecordService {
                 .createdAt(symptom.getCreatedAt())
                 .updatedAt(symptom.getUpdatedAt())
                 .build();
-    }
-
-    private void logAudit(Long userId, String action, String resourceType, Long resourceId, String detail) {
-        if (auditLogService != null) {
-            auditLogService.log(userId, null, action, resourceType, resourceId, detail, null, null);
-        }
     }
 }

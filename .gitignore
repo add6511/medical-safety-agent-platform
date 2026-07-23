@@ -8,3 +8,7 @@ target/
 .idea/
 *.iml
 .vscode/
+.agents/
+.claude/
+.windsurf/
+.arts/
