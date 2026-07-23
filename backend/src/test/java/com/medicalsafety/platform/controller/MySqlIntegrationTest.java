@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("testcontainers")
+@ActiveProfiles("test")
 @Testcontainers
 @Transactional
 @DisabledIfEnvironmentVariable(named = "SKIP_DOCKER_TESTS", matches = "true",
@@ -47,6 +47,8 @@ class MySqlIntegrationTest {
         registry.add("spring.datasource.url", mysql::getJdbcUrl);
         registry.add("spring.datasource.username", mysql::getUsername);
         registry.add("spring.datasource.password", mysql::getPassword);
+        registry.add("spring.flyway.enabled", () -> "true");
+        registry.add("spring.flyway.locations", () -> "classpath:db/migration");
     }
 
     @Autowired private MockMvc mockMvc;
