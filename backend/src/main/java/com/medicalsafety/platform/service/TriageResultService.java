@@ -90,27 +90,6 @@ public class TriageResultService {
         return toResponse(result);
     }
 
-    @Transactional
-    public TriageResultResponse createTriageResult(CreateTriageResultRequest request, Long operatorId, List<String> roles) {
-        if (!roles.stream().anyMatch(STAFF_ROLES::contains)) {
-            throw new AccessDeniedException("只有医务人员可以创建分诊结果");
-        }
-        if (!preConsultationRepository.existsById(request.getPreConsultationId())) {
-            throw new ResourceNotFoundException("预问诊记录不存在");
-        }
-        UrgencyLevel urgencyLevel = parseUrgencyLevel(request.getUrgencyLevel());
-        TriageResult result = TriageResult.builder()
-                .preConsultationId(request.getPreConsultationId())
-                .urgencyLevel(urgencyLevel)
-                .suggestedDepartment(request.getSuggestedDepartment())
-                .riskFlags(request.getRiskFlags())
-                .reasoningSummary(request.getReasoningSummary())
-                .referenceSources(request.getReferenceSources())
-                .build();
-        result = triageResultRepository.save(result);
-        auditLogService.log(operatorId, requestContextHelper.getCurrentUsername(), "CREATE", "TRIAGE_RESULT", result.getId(), "创建分诊结果", requestContextHelper.getClientIp(), requestContextHelper.getTraceId());
-        return toResponse(result);
-    }
 
     @Transactional(readOnly = true)
     public TriageResultResponse getTriageResultByPreConsultation(Long preConsultationId, Long operatorId, List<String> roles) {
@@ -133,19 +112,12 @@ public class TriageResultService {
         if (!preConsultationRepository.existsById(request.getPreConsultationId())) {
             throw new ResourceNotFoundException("预问诊记录不存在");
         }
-        AgentExecutionStatus status = parseAgentStatus(request.getStatus());
         AgentExecutionLog logEntry = AgentExecutionLog.builder()
                 .preConsultationId(request.getPreConsultationId())
                 .agentType(request.getAgentType())
                 .inputSummary(request.getInputSummary())
-                .outputSummary(request.getOutputSummary())
-                .status(status)
-                .errorMessage(request.getErrorMessage())
-                .durationMs(request.getDurationMs())
+                .status(AgentExecutionStatus.RUNNING)
                 .build();
-        if (status != AgentExecutionStatus.RUNNING) {
-            logEntry.setCompletedAt(LocalDateTime.now());
-        }
         logEntry = agentExecutionLogRepository.save(logEntry);
         auditLogService.log(operatorId, requestContextHelper.getCurrentUsername(), "CREATE", "AGENT_EXECUTION_LOG", logEntry.getId(),
                 "Agent执行记录: " + logEntry.getAgentType(), requestContextHelper.getClientIp(), requestContextHelper.getTraceId());
@@ -175,6 +147,9 @@ public class TriageResultService {
             logEntry.setErrorMessage(request.getErrorMessage());
         }
         if (request.getDurationMs() != null) {
+            if (request.getDurationMs() <= 0) {
+                throw new BusinessException("INVALID_DURATION", "执行耗时必须为正数");
+            }
             logEntry.setDurationMs(request.getDurationMs());
         }
         logEntry = agentExecutionLogRepository.save(logEntry);
@@ -185,11 +160,8 @@ public class TriageResultService {
 
     @Transactional(readOnly = true)
     public List<AgentExecutionLogResponse> getAgentExecutionLogs(Long preConsultationId, Long operatorId, List<String> roles) {
-        if (!roles.stream().anyMatch(STAFF_ROLES::contains)) {
-            var pc = preConsultationRepository.findById(preConsultationId).orElseThrow();
-            if (!pc.getPatientId().equals(operatorId)) {
-                throw new AccessDeniedException("无权访问该Agent执行记录");
-            }
+        if (!roles.stream().anyMatch(STAFF_ROLES::contains) && !roles.stream().anyMatch(AI_OR_ADMIN_ROLES::contains)) {
+            throw new AccessDeniedException("只有医务人员、AI服务或管理员可以查看Agent执行记录");
         }
         return agentExecutionLogRepository.findByPreConsultationId(preConsultationId).stream()
                 .map(this::toLogResponse).toList();

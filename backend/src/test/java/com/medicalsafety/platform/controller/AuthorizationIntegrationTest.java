@@ -152,18 +152,7 @@ class AuthorizationIntegrationTest {
     }
 
     @Test
-    void patientCannotCreateTriageResult() throws Exception {
-        CreateTriageResultRequest request = CreateTriageResultRequest.builder()
-                .preConsultationId(1L).urgencyLevel("URGENT").build();
 
-        mockMvc.perform(post("/api/v1/triage-results")
-                        .header("Authorization", "Bearer " + patientToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void patientCannotCreateAgentExecutionLog() throws Exception {
         String body = objectMapper.writeValueAsString(
                 java.util.Map.of("preConsultationId", 1, "agentType", "SAFETY_CHECK"));

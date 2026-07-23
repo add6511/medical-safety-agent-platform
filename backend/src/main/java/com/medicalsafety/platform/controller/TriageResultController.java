@@ -30,13 +30,6 @@ public class TriageResultController {
                 .body(triageResultService.submitTriageResult(request, getCurrentUserId(), getCurrentRoles()));
     }
 
-    @PostMapping
-    @Operation(summary = "创建分诊结果", description = "医务人员手动创建分诊结果")
-    public ResponseEntity<TriageResultResponse> createTriageResult(
-            @Valid @RequestBody CreateTriageResultRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(triageResultService.createTriageResult(request, getCurrentUserId(), getCurrentRoles()));
-    }
 
     @GetMapping("/pre-consultation/{preConsultationId}")
     @Operation(summary = "获取分诊结果", description = "根据预问诊ID获取分诊结果")

@@ -2,12 +2,17 @@ package com.medicalsafety.platform.service;
 
 import com.medicalsafety.platform.dto.*;
 import com.medicalsafety.platform.entity.FollowupTask;
+import com.medicalsafety.platform.entity.PreConsultation;
+import com.medicalsafety.platform.entity.UserRole;
 import com.medicalsafety.platform.enums.FollowupTaskStatus;
+import com.medicalsafety.platform.enums.PreConsultationStatus;
 import com.medicalsafety.platform.enums.RoleType;
 import com.medicalsafety.platform.exception.AccessDeniedException;
 import com.medicalsafety.platform.exception.BusinessException;
 import com.medicalsafety.platform.exception.ResourceNotFoundException;
 import com.medicalsafety.platform.repository.FollowupTaskRepository;
+import com.medicalsafety.platform.repository.PreConsultationRepository;
+import com.medicalsafety.platform.repository.UserRoleRepository;
 import com.medicalsafety.platform.security.RequestContextHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +34,8 @@ public class FollowupTaskService {
     );
 
     private final FollowupTaskRepository followupTaskRepository;
+    private final PreConsultationRepository preConsultationRepository;
+    private final UserRoleRepository userRoleRepository;
     private final AuditLogService auditLogService;
     private final RequestContextHelper requestContextHelper;
 
@@ -36,6 +43,19 @@ public class FollowupTaskService {
     public FollowupTaskResponse createTask(CreateFollowupTaskRequest request, Long operatorId, List<String> roles) {
         if (!roles.stream().anyMatch(MEDICAL_OR_ADMIN::contains)) {
             throw new AccessDeniedException("只有医务人员可以分配随访任务");
+        }
+        PreConsultation pc = preConsultationRepository.findById(request.getPreConsultationId())
+                .orElseThrow(() -> new ResourceNotFoundException("预问诊记录不存在"));
+        if (pc.getStatus() != PreConsultationStatus.MEDICAL_REVIEW_COMPLETED
+                && pc.getStatus() != PreConsultationStatus.COMPLETED) {
+            throw new BusinessException("INVALID_FOLLOWUP_STATE",
+                    "只能为审核完成或已完成的预问诊分配随访任务，当前状态: " + pc.getStatus());
+        }
+        List<UserRole> userRoles = userRoleRepository.findByUserId(request.getAssignedTo());
+        boolean isFollowupStaff = userRoles.stream()
+                .anyMatch(ur -> ur.getRole().getName() == RoleType.FOLLOWUP_STAFF);
+        if (!isFollowupStaff) {
+            throw new BusinessException("INVALID_ASSIGNEE", "被分配人必须是随访人员");
         }
         FollowupTask task = FollowupTask.builder()
                 .preConsultationId(request.getPreConsultationId())

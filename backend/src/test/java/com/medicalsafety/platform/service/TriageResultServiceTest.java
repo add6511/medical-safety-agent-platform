@@ -6,7 +6,6 @@ import com.medicalsafety.platform.entity.TriageResult;
 import com.medicalsafety.platform.enums.AgentExecutionStatus;
 import com.medicalsafety.platform.enums.UrgencyLevel;
 import com.medicalsafety.platform.exception.BusinessException;
-import com.medicalsafety.platform.exception.ResourceNotFoundException;
 import com.medicalsafety.platform.repository.AgentExecutionLogRepository;
 import com.medicalsafety.platform.repository.PreConsultationRepository;
 import com.medicalsafety.platform.repository.TriageResultRepository;
@@ -38,22 +37,6 @@ class TriageResultServiceTest {
     private static final List<String> PATIENT_ROLES = List.of("PATIENT");
 
     @Test
-    void createTriageResultSuccess() {
-        when(preConsultationRepository.existsById(1L)).thenReturn(true);
-        TriageResult result = TriageResult.builder().id(1L).preConsultationId(1L).urgencyLevel(UrgencyLevel.URGENT).suggestedDepartment("内科").build();
-        when(triageResultRepository.save(any(TriageResult.class))).thenReturn(result);
-        CreateTriageResultRequest request = CreateTriageResultRequest.builder().preConsultationId(1L).urgencyLevel("URGENT").suggestedDepartment("内科").build();
-        assertEquals("URGENT", triageResultService.createTriageResult(request, 1L, ADMIN_ROLES).getUrgencyLevel());
-    }
-
-    @Test
-    void patientCannotCreateTriageResult() {
-        CreateTriageResultRequest request = CreateTriageResultRequest.builder().preConsultationId(1L).urgencyLevel("URGENT").build();
-        assertThrows(com.medicalsafety.platform.exception.AccessDeniedException.class,
-                () -> triageResultService.createTriageResult(request, 100L, PATIENT_ROLES));
-    }
-
-    @Test
     void patientCannotCreateAgentExecutionLog() {
         CreateAgentExecutionLogRequest request = CreateAgentExecutionLogRequest.builder().preConsultationId(1L).agentType("SAFETY_CHECK").build();
         assertThrows(com.medicalsafety.platform.exception.AccessDeniedException.class,
@@ -61,12 +44,13 @@ class TriageResultServiceTest {
     }
 
     @Test
-    void createAgentExecutionLogSuccess() {
+    void createAgentExecutionLogAlwaysRunning() {
         when(preConsultationRepository.existsById(1L)).thenReturn(true);
-        AgentExecutionLog logEntry = AgentExecutionLog.builder().id(1L).preConsultationId(1L).agentType("SAFETY_CHECK").status(AgentExecutionStatus.COMPLETED).durationMs(1500L).build();
+        AgentExecutionLog logEntry = AgentExecutionLog.builder().id(1L).preConsultationId(1L).agentType("SAFETY_CHECK").status(AgentExecutionStatus.RUNNING).build();
         when(agentExecutionLogRepository.save(any(AgentExecutionLog.class))).thenReturn(logEntry);
-        CreateAgentExecutionLogRequest request = CreateAgentExecutionLogRequest.builder().preConsultationId(1L).agentType("SAFETY_CHECK").status("COMPLETED").durationMs(1500L).build();
-        assertEquals("SAFETY_CHECK", triageResultService.createAgentExecutionLog(request, 1L, ADMIN_ROLES).getAgentType());
+        CreateAgentExecutionLogRequest request = CreateAgentExecutionLogRequest.builder().preConsultationId(1L).agentType("SAFETY_CHECK").status("COMPLETED").build();
+        AgentExecutionLogResponse response = triageResultService.createAgentExecutionLog(request, 1L, ADMIN_ROLES);
+        assertEquals("RUNNING", response.getStatus());
     }
 
     @Test
@@ -77,23 +61,31 @@ class TriageResultServiceTest {
     }
 
     @Test
-    void getAgentExecutionLogs() {
+    void getAgentExecutionLogsByStaff() {
         AgentExecutionLog l1 = AgentExecutionLog.builder().id(1L).preConsultationId(1L).agentType("SAFETY_CHECK").status(AgentExecutionStatus.COMPLETED).build();
         when(agentExecutionLogRepository.findByPreConsultationId(1L)).thenReturn(List.of(l1));
         assertEquals(1, triageResultService.getAgentExecutionLogs(1L, 1L, ADMIN_ROLES).size());
     }
 
     @Test
-    void createTriageResultInvalidUrgencyLevel() {
-        when(preConsultationRepository.existsById(1L)).thenReturn(true);
-        CreateTriageResultRequest request = CreateTriageResultRequest.builder().preConsultationId(1L).urgencyLevel("INVALID").build();
-        assertThrows(BusinessException.class, () -> triageResultService.createTriageResult(request, 1L, ADMIN_ROLES));
+    void patientCannotViewAgentExecutionLogs() {
+        assertThrows(com.medicalsafety.platform.exception.AccessDeniedException.class,
+                () -> triageResultService.getAgentExecutionLogs(1L, 100L, PATIENT_ROLES));
     }
 
     @Test
-    void createTriageResultPreConsultationNotFound() {
-        when(preConsultationRepository.existsById(999L)).thenReturn(false);
-        CreateTriageResultRequest request = CreateTriageResultRequest.builder().preConsultationId(999L).urgencyLevel("URGENT").build();
-        assertThrows(ResourceNotFoundException.class, () -> triageResultService.createTriageResult(request, 1L, ADMIN_ROLES));
+    void updateAgentExecutionLogInvalidDuration() {
+        AgentExecutionLog logEntry = AgentExecutionLog.builder().id(1L).preConsultationId(1L).agentType("SAFETY_CHECK").status(AgentExecutionStatus.RUNNING).build();
+        when(agentExecutionLogRepository.findById(1L)).thenReturn(Optional.of(logEntry));
+        UpdateAgentExecutionLogRequest request = UpdateAgentExecutionLogRequest.builder().agentLogId(1L).status("COMPLETED").durationMs(-100L).build();
+        assertThrows(BusinessException.class, () -> triageResultService.updateAgentExecutionLog(request, 1L, ADMIN_ROLES));
+    }
+
+    @Test
+    void updateAgentExecutionLogZeroDuration() {
+        AgentExecutionLog logEntry = AgentExecutionLog.builder().id(1L).preConsultationId(1L).agentType("SAFETY_CHECK").status(AgentExecutionStatus.RUNNING).build();
+        when(agentExecutionLogRepository.findById(1L)).thenReturn(Optional.of(logEntry));
+        UpdateAgentExecutionLogRequest request = UpdateAgentExecutionLogRequest.builder().agentLogId(1L).status("COMPLETED").durationMs(0L).build();
+        assertThrows(BusinessException.class, () -> triageResultService.updateAgentExecutionLog(request, 1L, ADMIN_ROLES));
     }
 }
