@@ -48,10 +48,36 @@ export const aiApi = {
 }
 
 // === Auth APIs ===
+
+export interface LoginRequest {
+  username: string
+  password: string
+}
+
+export interface LoginResponse {
+  accessToken: string
+  tokenType: string
+  expiresIn: number
+  userId: number
+  username: string
+  roles: string[]
+}
+
+export interface CurrentUserResponse {
+  userId: number
+  username: string
+  displayName: string
+  caseCode: string | null
+  status: string
+  roles: string[]
+}
+
 export const authApi = {
-  login: (data: { email: string; password: string }) => api.post('/auth/login', data),
-  logout: () => api.post('/auth/logout'),
-  profile: () => api.get('/auth/profile'),
+  login: (data: LoginRequest) =>
+    api.post<LoginResponse>('/v1/auth/login', data),
+
+  me: () =>
+    api.get<CurrentUserResponse>('/v1/auth/me'),
 }
 
 export default api
