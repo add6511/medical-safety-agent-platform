@@ -8,43 +8,77 @@ const api = axios.create({
 // Auth interceptor
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+
   return config
 })
 
 api.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    if (err.response?.status === 401) {
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
       localStorage.removeItem('token')
+      localStorage.removeItem('user')
       window.location.href = '/login'
     }
-    return Promise.reject(err)
-  }
+
+    return Promise.reject(error)
+  },
 )
 
 // === Patient APIs ===
+
 export const patientApi = {
-  list: (params?: any) => api.get('/patients', { params }),
-  getById: (id: string) => api.get(`/patients/${id}`),
-  create: (data: any) => api.post('/patients', data),
-  update: (id: string, data: any) => api.put(`/patients/${id}`, data),
+  list: (params?: Record<string, unknown>) =>
+    api.get('/patients', { params }),
+
+  getById: (id: string) =>
+    api.get(`/patients/${id}`),
+
+  create: (data: Record<string, unknown>) =>
+    api.post('/patients', data),
+
+  update: (
+    id: string,
+    data: Record<string, unknown>,
+  ) =>
+    api.put(`/patients/${id}`, data),
 }
 
 // === Triage APIs ===
+
 export const triageApi = {
-  getResult: (id: string) => api.get(`/triage/${id}`),
-  submitForTriage: (data: any) => api.post('/triage', data),
-  review: (id: string, data: any) => api.put(`/triage/${id}/review`, data),
+  getResult: (id: string) =>
+    api.get(`/triage/${id}`),
+
+  submitForTriage: (
+    data: Record<string, unknown>,
+  ) =>
+    api.post('/triage', data),
+
+  review: (
+    id: string,
+    data: Record<string, unknown>,
+  ) =>
+    api.put(`/triage/${id}/review`, data),
 }
 
 // === AI / Safety APIs ===
+
 export const aiApi = {
-  getSafetyAlerts: () => api.get('/ai/safety-alerts'),
-  getAgentStatus: (id: string) => api.get(`/ai/agent-run/${id}`),
-  getGuidelines: (query: string) => api.get('/ai/guidelines', { params: { query } }),
+  getSafetyAlerts: () =>
+    api.get('/ai/safety-alerts'),
+
+  getAgentStatus: (id: string) =>
+    api.get(`/ai/agent-run/${id}`),
+
+  getGuidelines: (query: string) =>
+    api.get('/ai/guidelines', {
+      params: { query },
+    }),
 }
 
 // === Auth APIs ===
@@ -74,11 +108,17 @@ export interface CurrentUserResponse {
 
 export const authApi = {
   login: (data: LoginRequest) =>
-    api.post<LoginResponse>('/v1/auth/login', data),
+    api.post<LoginResponse>(
+      '/v1/auth/login',
+      data,
+    ),
 
   me: () =>
-    api.get<CurrentUserResponse>('/v1/auth/me'),
+    api.get<CurrentUserResponse>(
+      '/v1/auth/me',
+    ),
 }
+
 // === Medical Record APIs ===
 
 export interface CreateMedicalRecordRequest {
@@ -129,11 +169,18 @@ export interface CreateSymptomRequest {
 }
 
 export const medicalRecordApi = {
-  create: (data: CreateMedicalRecordRequest) =>
-    api.post<MedicalRecordResponse>('/v1/medical-records', data),
+  create: (
+    data: CreateMedicalRecordRequest,
+  ) =>
+    api.post<MedicalRecordResponse>(
+      '/v1/medical-records',
+      data,
+    ),
 
   getById: (id: number) =>
-    api.get<MedicalRecordResponse>(`/v1/medical-records/${id}`),
+    api.get<MedicalRecordResponse>(
+      `/v1/medical-records/${id}`,
+    ),
 
   getByCaseCode: (caseCode: string) =>
     api.get<MedicalRecordResponse>(
@@ -175,8 +222,26 @@ export interface PreConsultationResponse {
   updatedAt: string
 }
 
+// 后端保存的真实 AI 分诊结果
+export interface TriageResultResponse {
+  id: number
+  preConsultationId: number
+  urgencyLevel:
+    | 'EMERGENCY'
+    | 'URGENT'
+    | 'SEMI_URGENT'
+    | 'ROUTINE'
+  suggestedDepartment: string | null
+  riskFlags: string | null
+  reasoningSummary: string | null
+  referenceSources: string | null
+  createdAt: string
+}
+
 export const preConsultationApi = {
-  create: (data: CreatePreConsultationRequest) =>
+  create: (
+    data: CreatePreConsultationRequest,
+  ) =>
     api.post<PreConsultationResponse>(
       '/v1/pre-consultations',
       data,
@@ -191,5 +256,11 @@ export const preConsultationApi = {
     api.get<PreConsultationResponse[]>(
       `/v1/pre-consultations/record/${recordId}`,
     ),
+
+  executeAiTriage: (id: number) =>
+    api.post<TriageResultResponse>(
+      `/v1/pre-consultations/${id}/ai-triage`,
+    ),
 }
+
 export default api
