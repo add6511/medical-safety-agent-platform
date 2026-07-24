@@ -35,6 +35,12 @@ jwt:
   secret: ${JWT_SECRET:}
   expiration: 86400000
 
+ai:
+  service:
+    base-url: ${AI_SERVICE_BASE_URL:http://127.0.0.1:8000}
+    connect-timeout-ms: ${AI_SERVICE_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${AI_SERVICE_READ_TIMEOUT_MS:15000}
+
 springdoc:
   api-docs:
     path: /api-docs
