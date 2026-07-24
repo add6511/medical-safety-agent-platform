@@ -86,60 +86,245 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import type { AxiosError } from 'axios'
 import { ElMessage } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
+import { useAppStore } from '@/stores/app'
+import {
+  medicalRecordApi,
+  preConsultationApi,
+} from '@/api'
+
+interface ApiErrorResponse {
+  message?: string
+}
 
 const router = useRouter()
+const store = useAppStore()
+
 const step = ref(0)
 const symptomInput = ref('')
 const screening = ref(false)
 const submitting = ref(false)
 
 const form = reactive({
-  name: '', gender: '', age: 0,
-  symptoms: [] as string[], duration: '', selfRate: 3,
+  name: '',
+  gender: '',
+  age: 0,
+  symptoms: [] as string[],
+  duration: '',
+  selfRate: 3,
 })
 
-const quickSymptoms = ['模拟症状-A', '模拟症状-B', '模拟症状-C', '模拟症状-D', '模拟症状-E', '红旗标志-F', '红旗标志-G', '模拟症状-H']
-const durations = ['< 24小时', '1-3天', '3-7天', '1-2周', '> 1个月']
+const quickSymptoms = [
+  '模拟症状-A',
+  '模拟症状-B',
+  '模拟症状-C',
+  '模拟症状-D',
+  '模拟症状-E',
+  '红旗标志-F',
+  '红旗标志-G',
+  '模拟症状-H',
+]
 
-const result = reactive({ riskLevel: '', urgency: '', department: '', recommendations: [] as string[], aiConfidence: 0 })
+const durations = [
+  '< 24小时',
+  '1-3天',
+  '3-7天',
+  '1-2周',
+  '> 1个月',
+]
+
+const result = reactive({
+  riskLevel: '',
+  urgency: '',
+  department: '',
+  recommendations: [] as string[],
+  aiConfidence: 0,
+})
+
 const guidelines = ref([
-  { title: 'AI辅助筛查提示示例', content: '检测到红旗症状组合时，AI辅助筛查系统会提示医务人员进行人工复核。本提示为教学示例，不构成实际医疗建议。' },
-  { title: '关于风险评估的说明', content: 'AI辅助筛查结果基于模拟训练数据，置信度仅供参考。所有最终诊断和处置方案应由具备资质的医务人员确定。' },
+  {
+    title: 'AI辅助筛查提示示例',
+    content:
+      '检测到红旗症状组合时，AI辅助筛查系统会提示医务人员进行人工复核。本提示为教学示例，不构成实际医疗建议。',
+  },
+  {
+    title: '关于风险评估的说明',
+    content:
+      'AI辅助筛查结果基于模拟训练数据，置信度仅供参考。所有最终诊断和处置方案应由具备资质的医务人员确定。',
+  },
 ])
 
 function addSymptom() {
-  const s = symptomInput.value.trim()
-  if (s && !form.symptoms.includes(s)) form.symptoms.push(s)
+  const symptom = symptomInput.value.trim()
+
+  if (
+    symptom &&
+    !form.symptoms.includes(symptom)
+  ) {
+    form.symptoms.push(symptom)
+  }
+
   symptomInput.value = ''
 }
-function addQuick(s: string) { if (!form.symptoms.includes(s)) form.symptoms.push(s) }
+
+function addQuick(symptom: string) {
+  if (!form.symptoms.includes(symptom)) {
+    form.symptoms.push(symptom)
+  }
+}
+
+function mapSeverity(
+  selfRate: number,
+): 'MILD' | 'MODERATE' | 'SEVERE' {
+  if (selfRate <= 2) {
+    return 'MILD'
+  }
+
+  if (selfRate <= 4) {
+    return 'MODERATE'
+  }
+
+  return 'SEVERE'
+}
+
+function buildCaseCode(): string {
+  return `SYN-${Date.now()}`
+}
 
 async function doScreening() {
   screening.value = true
-  const flagCount = form.symptoms.filter(s => s.startsWith('红旗')).length
-  setTimeout(() => {
-    result.riskLevel = flagCount >= 2 ? '检测到多个红旗标志，需人工审核' : '常规风险水平'
-    result.urgency = flagCount >= 2 ? '紧急' : '常规'
+
+  const flagCount = form.symptoms.filter(
+    (symptom) => symptom.startsWith('红旗'),
+  ).length
+
+  window.setTimeout(() => {
+    result.riskLevel =
+      flagCount >= 2
+        ? '检测到多个红旗标志，需人工审核'
+        : '常规风险水平'
+
+    result.urgency =
+      flagCount >= 2
+        ? '紧急'
+        : '常规'
+
     result.department = '待医务人员确定'
-    result.recommendations = flagCount >= 2
-      ? ['检测到红旗症状组合，请医务人员立即进行人工审核', '建议综合评估后确定处置方案', '本结果为AI辅助提示，不能替代专业判断']
-      : ['AI已完成初步筛查', '请医务人员根据实际情况综合判断']
-    result.aiConfidence = 0.82 + Math.random() * 0.14
+
+    result.recommendations =
+      flagCount >= 2
+        ? [
+            '检测到红旗症状组合，请医务人员立即进行人工审核',
+            '建议综合评估后确定处置方案',
+            '本结果为AI辅助提示，不能替代专业判断',
+          ]
+        : [
+            '已完成本地教学规则预览',
+            '请医务人员根据实际情况综合判断',
+          ]
+
+    result.aiConfidence = 0.85
     screening.value = false
     step.value = 2
-  }, 1500)
+  }, 800)
 }
 
 async function submitCase() {
+  if (!store.user) {
+    ElMessage.error('登录状态已失效，请重新登录')
+    await router.push('/login')
+    return
+  }
+
+  if (store.user.role !== 'patient') {
+    ElMessage.warning(
+      '当前阶段请使用“教学演示-模拟患者”账号发起预问诊',
+    )
+    return
+  }
+
+  if (!form.name.trim()) {
+    ElMessage.warning('请填写案例编号')
+    step.value = 0
+    return
+  }
+
+  if (form.symptoms.length === 0) {
+    ElMessage.warning('请至少录入一个症状')
+    step.value = 1
+    return
+  }
+
   submitting.value = true
-  setTimeout(() => {
-    ElMessage.success('教学案例已提交，等待医务人员审核（演示）')
-    router.push('/dashboard')
+
+  try {
+    const caseCode = buildCaseCode()
+
+    // 1. 创建真实病例
+    const recordResponse =
+      await medicalRecordApi.create({
+        patientId: store.user.userId,
+        caseCode,
+        chiefComplaint:
+          `${form.name.trim()}：${form.symptoms.join('、')}`,
+        presentIllness: [
+          `性别：${form.gender || '未填写'}`,
+          `年龄：${form.age || '未填写'}`,
+          `持续时间：${form.duration || '未填写'}`,
+          `严重程度自评：${form.selfRate}/5`,
+        ].join('；'),
+        pastHistory: '合成教学数据：未提供既往史',
+        allergyHistory: '合成教学数据：未提供过敏史',
+      })
+
+    const record = recordResponse.data
+
+    // 2. 保存每一条真实症状
+    for (const symptomName of form.symptoms) {
+      await medicalRecordApi.addSymptom(
+        record.id,
+        {
+          recordId: record.id,
+          symptomName,
+          severity: mapSeverity(form.selfRate),
+          durationDesc:
+            form.duration || '未填写',
+          notes: '由模拟患者在教学演示页面录入',
+        },
+      )
+    }
+
+    // 3. 发起真实预问诊
+    const preConsultationResponse =
+      await preConsultationApi.create({
+        recordId: record.id,
+      })
+
+    const preConsultation =
+      preConsultationResponse.data
+
+    ElMessage.success(
+      `提交成功：病例 ${record.caseCode}，预问诊 ID ${preConsultation.id}`,
+    )
+
+    await router.push('/dashboard')
+  } catch (error: unknown) {
+    const axiosError =
+      error as AxiosError<ApiErrorResponse>
+
+    const message =
+      axiosError.response?.data?.message ||
+      (error instanceof Error
+        ? error.message
+        : '未知错误')
+
+    ElMessage.error(`提交失败：${message}`)
+  } finally {
     submitting.value = false
-  }, 800)
+  }
 }
 </script>
