@@ -185,10 +185,11 @@ function quickLogin(account: DemoAccount) {
     const frontendRole = mapBackendRole(data.roles)
 
     store.login(
-      data.username,
-      frontendRole,
-      data.accessToken,
-    )
+  data.userId,
+  data.username,
+  frontendRole,
+  data.accessToken,
+)
 
     ElMessage.success(`登录成功：${data.username}`)
     await router.push('/dashboard')
