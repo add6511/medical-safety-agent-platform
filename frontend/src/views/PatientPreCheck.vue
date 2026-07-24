@@ -192,7 +192,7 @@ function mapSeverity(
 }
 
 function buildCaseCode(): string {
-  return `SYN-${Date.now()}`
+  return `SYN-${crypto.randomUUID()}`
 }
 
 async function doScreening() {
