@@ -45,48 +45,128 @@ public class TriageResultService {
     private final AuditLogService auditLogService;
     private final RequestContextHelper requestContextHelper;
 
-    @Transactional
-    public TriageResultResponse submitTriageResult(SubmitTriageResultRequest request, Long operatorId, List<String> roles) {
+        @Transactional
+    public TriageResultResponse submitTriageResult(
+            SubmitTriageResultRequest request,
+            Long operatorId,
+            List<String> roles) {
+
         if (!roles.stream().anyMatch(AI_OR_ADMIN_ROLES::contains)) {
-            throw new AccessDeniedException("只有AI服务或管理员可以提交分诊结果");
+            throw new AccessDeniedException(
+                    "只有AI服务或管理员可以提交分诊结果"
+            );
         }
 
-        PreConsultation pc = preConsultationRepository.findById(request.getPreConsultationId())
-                .orElseThrow(() -> new ResourceNotFoundException("预问诊记录不存在"));
+        return persistTriageResult(request, operatorId);
+    }
 
-        if (pc.getStatus() != PreConsultationStatus.SYMPTOM_COLLECTED
-                && pc.getStatus() != PreConsultationStatus.NEEDS_REVISION) {
-            throw new BusinessException("INVALID_TRIAGE_STATE",
-                    "只能在症状收集或需修改状态下提交分诊结果，当前状态: " + pc.getStatus());
+    /**
+     * 供 Spring Boot 内部 AI 编排服务调用。
+     *
+     * 该方法不暴露为 HTTP 接口，调用方必须是受信任的后端服务。
+     */
+    @Transactional
+    public TriageResultResponse submitInternalTriageResult(
+        SubmitTriageResultRequest request,
+        Long operatorId) {
+
+    return persistTriageResult(
+            request,
+            operatorId
+    );
+}
+
+    private TriageResultResponse persistTriageResult(
+            SubmitTriageResultRequest request,
+            Long operatorId) {
+
+        PreConsultation pc = preConsultationRepository
+                .findById(request.getPreConsultationId())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "预问诊记录不存在"
+                        )
+                );
+
+        if (pc.getStatus()
+                != PreConsultationStatus.SYMPTOM_COLLECTED
+                && pc.getStatus()
+                != PreConsultationStatus.NEEDS_REVISION) {
+
+            throw new BusinessException(
+                    "INVALID_TRIAGE_STATE",
+                    "只能在症状收集或需修改状态下提交分诊结果，当前状态: "
+                            + pc.getStatus()
+            );
         }
 
-        UrgencyLevel urgencyLevel = parseUrgencyLevel(request.getUrgencyLevel());
+        UrgencyLevel urgencyLevel =
+                parseUrgencyLevel(
+                        request.getUrgencyLevel()
+                );
 
-        Optional<TriageResult> existing = triageResultRepository.findByPreConsultationId(request.getPreConsultationId());
+        Optional<TriageResult> existing =
+                triageResultRepository
+                        .findByPreConsultationId(
+                                request.getPreConsultationId()
+                        );
+
         TriageResult result;
+
         if (existing.isPresent()) {
             result = existing.get();
             result.setUrgencyLevel(urgencyLevel);
-            result.setSuggestedDepartment(request.getSuggestedDepartment());
-            result.setRiskFlags(request.getRiskFlags());
-            result.setReasoningSummary(request.getReasoningSummary());
-            result.setReferenceSources(request.getReferenceSources());
+            result.setSuggestedDepartment(
+                    request.getSuggestedDepartment()
+            );
+            result.setRiskFlags(
+                    request.getRiskFlags()
+            );
+            result.setReasoningSummary(
+                    request.getReasoningSummary()
+            );
+            result.setReferenceSources(
+                    request.getReferenceSources()
+            );
         } else {
             result = TriageResult.builder()
-                    .preConsultationId(request.getPreConsultationId())
+                    .preConsultationId(
+                            request.getPreConsultationId()
+                    )
                     .urgencyLevel(urgencyLevel)
-                    .suggestedDepartment(request.getSuggestedDepartment())
-                    .riskFlags(request.getRiskFlags())
-                    .reasoningSummary(request.getReasoningSummary())
-                    .referenceSources(request.getReferenceSources())
+                    .suggestedDepartment(
+                            request.getSuggestedDepartment()
+                    )
+                    .riskFlags(
+                            request.getRiskFlags()
+                    )
+                    .reasoningSummary(
+                            request.getReasoningSummary()
+                    )
+                    .referenceSources(
+                            request.getReferenceSources()
+                    )
                     .build();
         }
+
         result = triageResultRepository.save(result);
 
-        pc.setStatus(PreConsultationStatus.AI_TRIAGE_COMPLETED);
+        pc.setStatus(
+                PreConsultationStatus.AI_TRIAGE_COMPLETED
+        );
         preConsultationRepository.save(pc);
 
-        auditLogService.log(operatorId, requestContextHelper.getCurrentUsername(), "SUBMIT_TRIAGE", "TRIAGE_RESULT", result.getId(), "提交分诊结果", requestContextHelper.getClientIp(), requestContextHelper.getTraceId());
+        auditLogService.log(
+                operatorId,
+                requestContextHelper.getCurrentUsername(),
+                "SUBMIT_TRIAGE",
+                "TRIAGE_RESULT",
+                result.getId(),
+                "提交AI分诊结果",
+                requestContextHelper.getClientIp(),
+                requestContextHelper.getTraceId()
+        );
+
         return toResponse(result);
     }
 

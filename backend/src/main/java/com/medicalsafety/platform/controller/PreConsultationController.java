@@ -3,6 +3,7 @@ package com.medicalsafety.platform.controller;
 import com.medicalsafety.platform.dto.*;
 import com.medicalsafety.platform.enums.PreConsultationStatus;
 import com.medicalsafety.platform.service.PreConsultationService;
+import com.medicalsafety.platform.service.AiTriageOrchestrationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -23,6 +24,7 @@ import java.util.List;
 public class PreConsultationController {
 
     private final PreConsultationService preConsultationService;
+private final AiTriageOrchestrationService aiTriageOrchestrationService;
 
     @PostMapping
     @Operation(summary = "发起预问诊", description = "为就诊记录发起预问诊流程")
@@ -73,7 +75,23 @@ public class PreConsultationController {
             @Valid @RequestBody ReviewPreConsultationRequest request) {
         return ResponseEntity.ok(preConsultationService.reviewPreConsultation(id, request, getCurrentUserId(), getCurrentRoles()));
     }
+    @PostMapping("/{id}/ai-triage")
+    @Operation(
+            summary = "执行AI辅助分诊",
+            description = "读取病例和症状，调用AI服务完成安全分诊并保存结果"
+    )
+    public ResponseEntity<TriageResultResponse> executeAiTriage(
+            @PathVariable Long id) {
 
+        return ResponseEntity.ok(
+                aiTriageOrchestrationService
+                        .analyzeAndPersist(
+                                id,
+                                getCurrentUserId(),
+                                getCurrentRoles()
+                        )
+        );
+    }
     @PutMapping("/{id}/cancel")
     @Operation(summary = "取消预问诊", description = "取消预问诊流程")
     public ResponseEntity<PreConsultationResponse> cancelPreConsultation(@PathVariable Long id) {
