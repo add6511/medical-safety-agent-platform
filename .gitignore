@@ -12,3 +12,5 @@ target/
 .claude/
 .windsurf/
 .arts/
+
+*.tsbuildinfo

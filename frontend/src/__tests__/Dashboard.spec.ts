@@ -10,6 +10,15 @@ vi.mock('vue-router', () => ({
   createWebHistory: vi.fn(),
 }))
 
+vi.mock('vue-echarts', () => ({
+  default: {
+    name: 'VChartStub',
+    render() {
+      return null
+    },
+  },
+}))
+
 describe('MedicalDashboard.vue', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
