@@ -28,7 +28,7 @@ describe('Login.vue', () => {
     expect(tags.length).toBeGreaterThanOrEqual(3)
   })
 
-  it('空表单校验——邮箱和密码必填', async () => {
+  it('空表单校验——用户名和密码必填', async () => {
     const { default: Login } = await import('@/views/Login.vue')
     const wrapper = mount(Login, { global: { plugins: [createPinia(), ElementPlus] } })
     const form = wrapper.findComponent({ name: 'ElForm' })
@@ -42,12 +42,17 @@ describe('Login.vue', () => {
     expect(doctorTag).toBeTruthy()
   })
 
-  it('显示MOCK Token提示', async () => {
-    const { default: Login } = await import('@/views/Login.vue')
-    const wrapper = mount(Login, { global: { plugins: [createPinia(), ElementPlus] } })
-    const html = wrapper.html()
-    expect(html).toContain('MOCK')
+  it('显示真实后端联调提示', async () => {
+  const { default: Login } = await import('@/views/Login.vue')
+  const wrapper = mount(Login, {
+    global: {
+      plugins: [createPinia(), ElementPlus],
+    },
   })
+
+  expect(wrapper.text()).toContain('真实后端联调')
+  expect(wrapper.text()).not.toContain('MOCK Token')
+})
 
   it('显示教学演示免责声明', async () => {
     const { default: Login } = await import('@/views/Login.vue')
